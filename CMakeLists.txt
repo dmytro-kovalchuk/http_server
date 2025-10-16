@@ -8,6 +8,9 @@ set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 set(SOURCES
-    main.c)
+    ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/logger.c)
+
+include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
