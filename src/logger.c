@@ -4,7 +4,7 @@
     #include <time.h>
     #include <string.h>
 
-    void log(enum Level level, const char* message) {
+    void log_message(enum Level level, const char* message) {
         if (message == NULL) {
             return;
         }

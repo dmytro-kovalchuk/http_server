@@ -11,6 +11,6 @@ enum Level {
     FATAL
 };
 
-void log(enum Level level, const char* message);
+void log_message(enum Level level, const char* message);
 
 #endif
