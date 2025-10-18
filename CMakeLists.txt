@@ -7,8 +7,11 @@ project(${PROJECT_NAME} LANGUAGES C)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
+add_compile_options(-Wall -Wextra -Werror)
+
 set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CMAKE_SOURCE_DIR}/src/server.c
     ${CMAKE_SOURCE_DIR}/src/logger.c)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
