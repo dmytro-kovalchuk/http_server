@@ -22,8 +22,19 @@ int create_file_descriptor() {
         perror("Couldn't create socket");
         exit(EXIT_FAILURE);
     }
+
+    make_port_reusable(server_fd);
     
     return server_fd;
+}
+
+void make_port_reusable(int server_fd) {
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+        perror("Couldn't make server reuse port");
+        close(server_fd);
+        exit(EXIT_FAILURE);
+    }
 }
 
 struct sockaddr_in create_server_addr() {
@@ -37,6 +48,7 @@ struct sockaddr_in create_server_addr() {
 void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
     if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("Couldn't bind server address to file descriptor");
+        close(server_fd);
         exit(EXIT_FAILURE);
     }
 }

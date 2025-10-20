@@ -7,6 +7,8 @@ void start_server();
 
 int create_file_descriptor();
 
+void make_port_reusable(int server_fd);
+
 struct sockaddr_in create_server_addr();
 
 void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr);
@@ -22,6 +24,5 @@ void handle_client();
 char* receive_request();
 
 void send_response();
-
 
 #endif
