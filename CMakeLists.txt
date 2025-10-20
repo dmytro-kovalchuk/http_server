@@ -12,7 +12,8 @@ add_compile_options(-Wall -Wextra -Werror)
 set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/main.c
     ${CMAKE_SOURCE_DIR}/src/server.c
-    ${CMAKE_SOURCE_DIR}/src/logger.c)
+    ${CMAKE_SOURCE_DIR}/src/logger.c
+    ${CMAKE_SOURCE_DIR}/src/utils.c)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 

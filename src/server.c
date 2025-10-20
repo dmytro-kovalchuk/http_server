@@ -4,15 +4,22 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include "../include/utils.h"
+
+volatile sig_atomic_t is_server_running = 1;
 
 void start_server() {
+    signal(SIGINT, handle_sigint);
     int server_fd = create_file_descriptor();
     struct sockaddr_in server_addr = create_server_addr();
     bind_addr_to_socket(server_fd, server_addr);
+    puts("Server is started. Press Ctrl+C to stop it...");
     handle_requests(server_fd);
     close(server_fd);
+    puts("Server is stopped!");
 }
 
 int create_file_descriptor() {
@@ -48,14 +55,13 @@ struct sockaddr_in create_server_addr() {
 void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
     if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
         perror("Couldn't bind server address to file descriptor");
-        close(server_fd);
         exit(EXIT_FAILURE);
     }
 }
 
 void handle_requests(int server_fd) {
     start_listening(server_fd);
-    while (1) {
+    while (is_server_running) {
         int client_socket = accept_connection(server_fd);
         if (client_socket == -1) break;
         handle_client(client_socket);
@@ -82,7 +88,7 @@ int accept_connection(int server_fd) {
 }
 
 void handle_client() {
-    while (1) {
+    while (is_server_running) {
         char* request = receive_request();
         if (request == NULL || strlen(request) < MIN_REQUEST_LEN) {
             free(request);
