@@ -1,7 +1,6 @@
 #include "../include/file_storage.h"
 
 #include <stdio.h>
-#include <unistd.h>
 
 int send_file(int client_socket, const char* path) {
     FILE* file = fopen(path, "rb");
@@ -26,7 +25,7 @@ int send_file(int client_socket, const char* path) {
     return 0;
 }
 
-void receive_file(int client_socket, const char* filename, size_t file_size) {
+int receive_file(int client_socket, const char* filename, size_t file_size) {
     char path[256];
     snprintf(path, sizeof(path), "storage/%s", filename);
 
