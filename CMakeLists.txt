@@ -15,6 +15,7 @@ set(SOURCES
     ${CMAKE_SOURCE_DIR}/src/logger.c
     ${CMAKE_SOURCE_DIR}/src/file_storage.c
     ${CMAKE_SOURCE_DIR}/src/utils.c)
+    ${CMAKE_SOURCE_DIR}/src/http_comminication.c)
 
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
