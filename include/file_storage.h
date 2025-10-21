@@ -7,4 +7,6 @@ int send_file(int client_socket, const char* path);
 
 int receive_file(int client_socket, const char* filename, size_t file_size);
 
+int is_file_exists(const char* filename, const char* mode);
+
 #endif

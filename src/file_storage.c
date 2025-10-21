@@ -52,3 +52,16 @@ int receive_file(int client_socket, const char* filename, size_t file_size) {
     fclose(file);
     return 0;
 }
+
+int is_file_exists(const char* filename, const char* mode) {
+    char path[256];
+    snprintf(path, sizeof(path), "storage/%s", filename);
+
+    FILE* file = fopen(path, mode);
+    if (file != NULL) {
+        fclose(file);
+        return 1;
+    }
+
+    return 0;
+}
