@@ -5,10 +5,13 @@
 
 int send_file(int client_socket, const char* path);
 
-int receive_file(int client_socket, const char* filename, size_t file_size);
+int receive_file(int client_socket, const char* filename, size_t content_size,
+                 const void* received_body, size_t received_body_size);
 
 int delete_file(const char* filename);
 
-int is_file_exists(const char* filename, const char* mode);
+int is_file_exists(const char* filename);
+
+size_t get_file_size(const char* filename);
 
 #endif
