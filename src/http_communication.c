@@ -5,6 +5,11 @@
 #include <string.h>
 #include "../include/file_storage.h"
 
+#define STATUS_200_OK           "HTTP/1.1 200 OK"
+#define STATUS_201_CREATED      "HTTP/1.1 201 Created"
+#define STATUS_404_NOT_FOUND    "HTTP/1.1 404 Not Found"
+#define STATUS_405_METHOD_NOT_ALLOWED "HTTP/1.1 405 Method Not Allowed"
+
 struct Request parse_request(const char* raw_request) {
     struct Request request = {0};
     request.body = NULL;
@@ -46,35 +51,35 @@ char* create_response(struct Request request) {
 
     if (strcmp(request.method, "GET") == 0) {
         if (!is_file_exists(request.path)) {
-            strcpy(response.status, "HTTP/1.1 404 Not Found");
+            strcpy(response.status, STATUS_404_NOT_FOUND);
             strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
             response.body = strdup("Not Found");
             response.body_size = response.body != NULL ? strlen(response.body) : 0;
         } else {
-            strcpy(response.status, "HTTP/1.1 200 OK");
+            strcpy(response.status, STATUS_200_OK);
             char header[128];
             snprintf(header, sizeof(header), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
             strncpy(response.headers, header, sizeof(response.headers) - 1);
         }
     } else if (strcmp(request.method, "POST") == 0) {
-        strcpy(response.status, "HTTP/1.1 201 Created");
+        strcpy(response.status, STATUS_201_CREATED);
         strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 17");
         response.body = strdup("File created.\n");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
     } else if (strcmp(request.method, "DELETE") == 0) {
         if (delete_file(request.path) == 0) {
-            strcpy(response.status, "HTTP/1.1 200 OK");
+            strcpy(response.status, STATUS_200_OK);
             strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 15");
             response.body = strdup("File deleted.\n");
             response.body_size = response.body != NULL ? strlen(response.body) : 0;
         } else {
-            strcpy(response.status, "HTTP/1.1 404 Not Found");
+            strcpy(response.status, STATUS_404_NOT_FOUND);
             strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
             response.body = strdup("Not Found");
             response.body_size = response.body != NULL ? strlen(response.body) : 0;
         }
     } else {
-        strcpy(response.status, "HTTP/1.1 405 Method Not Allowed");
+        strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
         strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 18");
         response.body = strdup("Method not allowed");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
