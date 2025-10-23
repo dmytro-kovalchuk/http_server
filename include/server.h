@@ -1,6 +1,8 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include "../include/http_communication.h"
+
 #define MIN_REQUEST_LEN 5
 
 void start_server();
@@ -19,10 +21,10 @@ void start_listening(int server_fd);
 
 int accept_connection(int server_fd);
 
-void handle_client();
+void handle_client(int client_socket);
 
-char* receive_request();
+char* receive_request(int client_socket);
 
-void send_response();
+void send_response(int client_socket, struct Request request);
 
 #endif

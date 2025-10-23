@@ -8,17 +8,20 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "../include/utils.h"
+#include "../include/file_storage.h"
 
 volatile sig_atomic_t is_server_running = 1;
+int g_server_fd = -1;
 
 void start_server() {
     signal(SIGINT, handle_sigint);
-    int server_fd = create_file_descriptor();
+    g_server_fd = create_file_descriptor();
     struct sockaddr_in server_addr = create_server_addr();
-    bind_addr_to_socket(server_fd, server_addr);
+    bind_addr_to_socket(g_server_fd, server_addr);
     puts("Server is started. Press Ctrl+C to stop it...");
-    handle_requests(server_fd);
-    close(server_fd);
+    handle_requests(g_server_fd);
+    close(g_server_fd);
+    g_server_fd = -1;
     puts("Server is stopped!");
 }
 
@@ -87,24 +90,87 @@ int accept_connection(int server_fd) {
     return client_socket;
 }
 
-void handle_client() {
+void handle_client(int client_socket) {
     while (is_server_running) {
-        char* request = receive_request();
-        if (request == NULL || strlen(request) < MIN_REQUEST_LEN) {
-            free(request);
-            break;
+        char* raw_request = receive_request(client_socket);
+        if (raw_request == NULL) break;
+
+        struct Request request = parse_request(raw_request);
+        
+        if (strstr(request.headers, "Expect: 100-continue")) {
+            const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
+            send(client_socket, continue_response, strlen(continue_response), 0);
         }
 
-        send_response();
-        free(request);
+        if (strcmp(request.method, "POST") == 0) {
+            size_t content_len = parse_content_length(request.headers);
+
+            int received_bytes = receive_file(client_socket,
+                                  request.path,
+                                  content_len,
+                                  request.body,
+                                  request.body_size);
+
+            if (received_bytes != 0) {
+                const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+                send(client_socket, error, strlen(error), 0);
+                free(raw_request);
+                if (request.body) free(request.body);
+                break;
+            }
+
+            char* raw_response = create_response(request);
+            send(client_socket, raw_response, strlen(raw_response), 0);
+            free(raw_response);
+        } else if (strcmp(request.method, "GET") == 0) {
+            char* raw_response = create_response(request);
+            send(client_socket, raw_response, strlen(raw_response), 0);
+            free(raw_response);
+
+            send_file(client_socket, request.path);
+        } else if (strcmp(request.method, "DELETE") == 0) {
+            char* raw_response = create_response(request);
+            send(client_socket, raw_response, strlen(raw_response), 0);
+            free(raw_response);
+        } else {
+            const char* raw_response = "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n";
+            send(client_socket, raw_response, strlen(raw_response), 0);
+        }
+
+        if (request.body) free(request.body);
+        free(raw_request);
+
+        close(client_socket);
+        break;
     }
 }
 
-char* receive_request() {
-    // TODO receive request
-    return NULL;
+char* receive_request(int client_socket) {
+    size_t buffer_size = 8192;
+    char* buffer = malloc(buffer_size + 1);
+    if (!buffer) return NULL;
+
+    size_t total_received_bytes = 0;
+    while (1) {
+        ssize_t received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
+        if (received_bytes <= 0) {
+            free(buffer);
+            return NULL;
+        }
+
+        total_received_bytes += (size_t)received_bytes;
+        buffer[total_received_bytes] = '\0';
+
+        char* header_end = strstr(buffer, "\r\n\r\n");
+        if (header_end) {
+            return buffer;
+        }
+
+        if (total_received_bytes >= buffer_size) {
+            free(buffer);
+            return NULL;
+        }
+    }
 }
 
-void send_response() {
-    // TODO send request
-}
+// void send_response(int client_socket, struct Request request);
