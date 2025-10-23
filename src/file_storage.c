@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <sys/socket.h>
+#include "../include/logger.h"
 
 #define STORAGE_DIR "storage/"
 #define MAX_FILE_PATH 512
@@ -9,7 +10,7 @@
 int send_file(int client_socket, const char* path) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        perror("Couldn't open file");
+        log_message(ERROR, "Couldn't open file");
         return -1;
     }
 
@@ -19,12 +20,13 @@ int send_file(int client_socket, const char* path) {
     while((bytes_read = fread(buffer, 1, BUFSIZ, file)) > 0) {
         ssize_t bytes_sent = send(client_socket, buffer, bytes_read, 0);
         if (bytes_sent == -1) {
-            perror("Failed to send file");
+            log_message(ERROR, "Failed to send file");
             fclose(file);
             return -1;
         }
     }
 
+    log_message(INFO, "File was successfully sent");
     fclose(file);
     return 0;
 }
@@ -36,7 +38,7 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
 
     FILE* file = fopen(path, "wb");
     if (!file) {
-        perror("Couldn't create file");
+        log_message(ERROR, "Couldn't create file");
         return -1;
     }
 
@@ -53,7 +55,7 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
 
         ssize_t received_bytes = recv(client_socket, buffer, data_chunk, 0);
         if (received_bytes <= 0) {
-            perror("Failed during receiving data chunk");
+            log_message(ERROR, "Failed during receiving data chunk");
             fclose(file);
             return -1;
         }
@@ -62,6 +64,7 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
         remaining_bytes -= (size_t)received_bytes;
     }
 
+    log_message(INFO, "File was successfully received");
     fclose(file);
     return 0;
 }
