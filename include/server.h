@@ -25,6 +25,16 @@ void handle_client(int client_socket);
 
 char* receive_request(int client_socket);
 
-void send_response(int client_socket, struct Request request);
+int send_response(int client_socket, struct Request request);
+
+void send_method_continue(int client_socket);
+
+int send_method_post(int client_socket, struct Request request);
+
+void send_method_get(int client_socket, struct Request request);
+
+void send_method_delete(int client_socket, struct Request request);
+
+void send_method_other(int client_socket);
 
 #endif

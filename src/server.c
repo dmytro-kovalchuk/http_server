@@ -10,6 +10,8 @@
 #include "../include/utils.h"
 #include "../include/file_storage.h"
 
+#define SERVER_PORT 8080
+
 volatile sig_atomic_t is_server_running = 1;
 int g_server_fd = -1;
 
@@ -51,7 +53,7 @@ struct sockaddr_in create_server_addr() {
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    server_addr.sin_port = htons(8080);
+    server_addr.sin_port = htons(SERVER_PORT);
     return server_addr;
 }
 
@@ -97,44 +99,9 @@ void handle_client(int client_socket) {
 
         struct Request request = parse_request(raw_request);
         
-        if (strstr(request.headers, "Expect: 100-continue")) {
-            const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
-            send(client_socket, continue_response, strlen(continue_response), 0);
-        }
-
-        if (strcmp(request.method, "POST") == 0) {
-            size_t content_len = parse_content_length(request.headers);
-
-            int received_bytes = receive_file(client_socket,
-                                  request.path,
-                                  content_len,
-                                  request.body,
-                                  request.body_size);
-
-            if (received_bytes != 0) {
-                const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
-                send(client_socket, error, strlen(error), 0);
-                free(raw_request);
-                if (request.body) free(request.body);
-                break;
-            }
-
-            char* raw_response = create_response(request);
-            send(client_socket, raw_response, strlen(raw_response), 0);
-            free(raw_response);
-        } else if (strcmp(request.method, "GET") == 0) {
-            char* raw_response = create_response(request);
-            send(client_socket, raw_response, strlen(raw_response), 0);
-            free(raw_response);
-
-            send_file(client_socket, request.path);
-        } else if (strcmp(request.method, "DELETE") == 0) {
-            char* raw_response = create_response(request);
-            send(client_socket, raw_response, strlen(raw_response), 0);
-            free(raw_response);
-        } else {
-            const char* raw_response = "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n";
-            send(client_socket, raw_response, strlen(raw_response), 0);
+        if (send_response(client_socket, request) == -1) {
+            free(raw_request);
+            break;
         }
 
         if (request.body) free(request.body);
@@ -173,4 +140,67 @@ char* receive_request(int client_socket) {
     }
 }
 
-// void send_response(int client_socket, struct Request request);
+int send_response(int client_socket, struct Request request) {
+    if (strstr(request.headers, "Expect: 100-continue")) {
+        send_method_continue(client_socket);
+    }
+    
+    if (strcmp(request.method, "POST") == 0) {
+        return send_method_post(client_socket, request);
+    } else if (strcmp(request.method, "GET") == 0) {
+        send_method_get(client_socket, request);
+    } else if (strcmp(request.method, "DELETE") == 0) {
+        send_method_delete(client_socket, request);
+    } else {
+        send_method_other(client_socket);
+    }
+
+    return 0;
+}
+
+void send_method_continue(int client_socket) {
+    const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
+    send(client_socket, continue_response, strlen(continue_response), 0);
+}
+
+int send_method_post(int client_socket, struct Request request) {
+    size_t content_size = parse_content_length(request.headers);
+
+    int received_bytes = receive_file(client_socket,
+                            request.path,
+                            content_size,
+                            request.body,
+                            request.body_size);
+
+    if (received_bytes != 0) {
+        const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+        send(client_socket, error, strlen(error), 0);
+        if (request.body) free(request.body);
+        return -1;
+    }
+
+    char* raw_response = create_response(request);
+    send(client_socket, raw_response, strlen(raw_response), 0);
+    free(raw_response);
+
+    return 0;
+}
+
+void send_method_get(int client_socket, struct Request request) {
+    char* raw_response = create_response(request);
+    send(client_socket, raw_response, strlen(raw_response), 0);
+    free(raw_response);
+
+    send_file(client_socket, request.path);
+}
+
+void send_method_delete(int client_socket, struct Request request) {
+    char* raw_response = create_response(request);
+    send(client_socket, raw_response, strlen(raw_response), 0);
+    free(raw_response);
+}
+
+void send_method_other(int client_socket) {
+    const char* raw_response = "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n";
+    send(client_socket, raw_response, strlen(raw_response), 0);
+}
