@@ -1,8 +1,5 @@
 #!/bin/bash
 
-cd ./build
-rm -rf *
-cmake ..
-make
-./http_server
+./build.sh
+./build/http_server
 cd ..
