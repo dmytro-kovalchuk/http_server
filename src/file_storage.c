@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <sys/socket.h>
 
+#define STORAGE_DIR "storage/"
+#define MAX_FILE_PATH 512
+
 int send_file(int client_socket, const char* path) {
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
@@ -28,8 +31,8 @@ int send_file(int client_socket, const char* path) {
 
 int receive_file(int client_socket, const char* filename, size_t file_size,
                  const void* received_body, size_t received_body_size) {
-    char path[512];
-    snprintf(path, sizeof(path), "storage/%s", filename);
+    char path[MAX_FILE_PATH];
+    set_file_location(path, filename);
 
     FILE* file = fopen(path, "wb");
     if (!file) {
@@ -64,14 +67,14 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
 }
 
 int delete_file(const char* filename) {
-    char path[512];
-    snprintf(path, sizeof(path), "storage/%s", filename);
+    char path[MAX_FILE_PATH];
+    set_file_location(path, filename);
     return remove(path);
 }
 
 int is_file_exists(const char* filename) {
-    char path[512];
-    snprintf(path, sizeof(path), "storage/%s", filename);
+    char path[MAX_FILE_PATH];
+    set_file_location(path, filename);
 
     FILE* file = fopen(path, "r");
     if (file != NULL) {
@@ -83,12 +86,16 @@ int is_file_exists(const char* filename) {
 }
 
 size_t get_file_size(const char* filename) {
-    char path[512];
-    snprintf(path, sizeof(path), "storage/%s", filename);
+    char path[MAX_FILE_PATH];
+    set_file_location(path, filename);
 
     FILE* file = fopen(path, "rb");
     fseek(file, 0, SEEK_END);
     size_t size = ftell(file);
     fseek(file, 0, SEEK_SET);
     return size;
+}
+
+void set_file_location(char* output, const char* filenane) {
+    snprintf(output, MAX_FILE_PATH, STORAGE_DIR "%s", filenane);
 }
