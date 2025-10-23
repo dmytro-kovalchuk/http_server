@@ -25,4 +25,14 @@ char* create_response(struct Request request);
 
 size_t parse_content_length(const char* headers);
 
+struct Response handle_method_get(struct Request request);
+
+struct Response handle_method_post();
+
+struct Response handle_method_delete(struct Request request);
+
+struct Response handle_method_other();
+
+char* convert_struct_to_string(struct Response response);
+
 #endif

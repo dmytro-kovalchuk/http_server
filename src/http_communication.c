@@ -50,58 +50,16 @@ char* create_response(struct Request request) {
     response.body_size = 0;
 
     if (strcmp(request.method, "GET") == 0) {
-        if (!is_file_exists(request.path)) {
-            strcpy(response.status, STATUS_404_NOT_FOUND);
-            strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
-            response.body = strdup("Not Found");
-            response.body_size = response.body != NULL ? strlen(response.body) : 0;
-        } else {
-            strcpy(response.status, STATUS_200_OK);
-            char header[128];
-            snprintf(header, sizeof(header), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
-            strncpy(response.headers, header, sizeof(response.headers) - 1);
-        }
+        response = handle_method_get(request);
     } else if (strcmp(request.method, "POST") == 0) {
-        strcpy(response.status, STATUS_201_CREATED);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 17");
-        response.body = strdup("File created.\n");
-        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        response = handle_method_post();
     } else if (strcmp(request.method, "DELETE") == 0) {
-        if (delete_file(request.path) == 0) {
-            strcpy(response.status, STATUS_200_OK);
-            strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 15");
-            response.body = strdup("File deleted.\n");
-            response.body_size = response.body != NULL ? strlen(response.body) : 0;
-        } else {
-            strcpy(response.status, STATUS_404_NOT_FOUND);
-            strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
-            response.body = strdup("Not Found");
-            response.body_size = response.body != NULL ? strlen(response.body) : 0;
-        }
+        response = handle_method_delete(request);
     } else {
-        strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 18");
-        response.body = strdup("Method not allowed");
-        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        response = handle_method_other();
     }
 
-    size_t total_size = 256 + (response.body_size);
-    char* response_str = malloc(total_size);
-    if (response_str == NULL) {
-        if (response.body) free(response.body);
-        return NULL;
-    }
-
-    int bytes_written = snprintf(response_str, total_size, "%s\r\n%s\r\n\r\n", response.status, response.headers);
-    if (response.body && response.body_size > 0) {
-        memcpy(response_str + bytes_written, response.body, response.body_size);
-        response_str[bytes_written + response.body_size] = '\0';
-    } else {
-        response_str[bytes_written] = '\0';
-    }
-
-    if (response.body) free(response.body);
-    return response_str;
+    return convert_struct_to_string(response);
 }
 
 size_t parse_content_length(const char* headers) {
@@ -126,4 +84,81 @@ size_t parse_content_length(const char* headers) {
     }
 
     return 0;
+}
+
+struct Response handle_method_get(struct Request request) {
+    struct Response response;
+
+    if (!is_file_exists(request.path)) {
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
+        response.body = strdup("Not Found");
+        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+    } else {
+        strcpy(response.status, STATUS_200_OK);
+        char header[128];
+        snprintf(header, sizeof(header), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
+        strncpy(response.headers, header, sizeof(response.headers) - 1);
+    }
+
+    return response;
+}
+
+
+struct Response handle_method_post() {
+    struct Response response;
+
+    strcpy(response.status, STATUS_201_CREATED);
+    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 17");
+    response.body = strdup("File created.\n");
+    response.body_size = response.body != NULL ? strlen(response.body) : 0;
+
+    return response;
+}
+struct Response handle_method_delete(struct Request request) {
+    struct Response response;
+
+    if (delete_file(request.path) == 0) {
+        strcpy(response.status, STATUS_200_OK);
+        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 15");
+        response.body = strdup("File deleted.\n");
+        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+    } else {
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
+        response.body = strdup("Not Found");
+        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+    }
+
+    return response;
+}
+struct Response handle_method_other() {
+    struct Response response;
+
+    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
+    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 18");
+    response.body = strdup("Method not allowed");
+    response.body_size = response.body != NULL ? strlen(response.body) : 0;
+
+    return response;
+}
+
+char* convert_struct_to_string(struct Response response) {
+    size_t total_size = 256 + (response.body_size);
+    char* response_str = malloc(total_size);
+    if (response_str == NULL) {
+        if (response.body) free(response.body);
+        return NULL;
+    }
+
+    int bytes_written = snprintf(response_str, total_size, "%s\r\n%s\r\n\r\n", response.status, response.headers);
+    if (response.body && response.body_size > 0) {
+        memcpy(response_str + bytes_written, response.body, response.body_size);
+        response_str[bytes_written + response.body_size] = '\0';
+    } else {
+        response_str[bytes_written] = '\0';
+    }
+
+    if (response.body) free(response.body);
+    return response_str;
 }
