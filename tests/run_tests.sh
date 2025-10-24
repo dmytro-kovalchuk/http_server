@@ -5,9 +5,13 @@ rm -rf build/*.so
 
 targets=("logger" "file_storage")
 for target in ${targets[@]}; do
-    gcc -fPIC -shared -Iinclude -o "build/test_${target}.so" "src/${target}.c"
+    if [ "$target" = "logger" ]; then
+        gcc -fPIC -shared -Iinclude -o "build/test_${target}.so" "src/${target}.c"
+    else
+        gcc -fPIC -shared -Iinclude -o "build/test_${target}.so" "src/${target}.c" "src/logger.c"
+    fi
 done
 
 pytest --rootdir=.
 
-rm -rf log.txt
+rm -rf storage/test.txt
