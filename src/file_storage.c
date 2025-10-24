@@ -99,6 +99,6 @@ size_t get_file_size(const char* filename) {
     return size;
 }
 
-void set_file_location(char* output, const char* filenane) {
-    snprintf(output, MAX_FILE_PATH, STORAGE_DIR "%s", filenane);
+void set_file_location(char* output, const char* filename) {
+    snprintf(output, MAX_FILE_PATH, STORAGE_DIR "%s", filename);
 }

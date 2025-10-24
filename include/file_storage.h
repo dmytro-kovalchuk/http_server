@@ -14,6 +14,6 @@ int is_file_exists(const char* filename);
 
 size_t get_file_size(const char* filename);
 
-void set_file_location(char* output, const char* filenane);
+void set_file_location(char* output, const char* filename);
 
 #endif
