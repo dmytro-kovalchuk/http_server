@@ -3,14 +3,9 @@
 cd "$(dirname "$0")/.."
 rm -rf build/*.so
 
-targets=("logger" "file_storage")
-for target in ${targets[@]}; do
-    if [ "$target" = "logger" ]; then
-        gcc -fPIC -shared -Iinclude -o "build/test_${target}.so" "src/${target}.c"
-    else
-        gcc -fPIC -shared -Iinclude -o "build/test_${target}.so" "src/${target}.c" "src/logger.c"
-    fi
-done
+gcc -fPIC -shared -Iinclude -o build/test_logger.so src/logger.c
+gcc -fPIC -shared -Iinclude -o build/test_file_storage.so src/file_storage.c src/logger.c
+gcc -fPIC -shared -Iinclude -o build/test_server.so src/*.c
 
 pytest --rootdir=.
 
