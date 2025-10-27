@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include "../include/logger.h"
 
-#define STORAGE_DIR "storage/"
+#define STORAGE_DIR "./storage"
 #define MAX_FILE_PATH 512
 
 int send_file(int client_socket, const char* path) {

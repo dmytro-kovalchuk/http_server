@@ -6,10 +6,12 @@
 #include <unistd.h>
 #include <signal.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include "../include/utils.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
+#include <http_communication.h>
 
 #define SERVER_PORT 8080
 
@@ -78,8 +80,22 @@ void handle_requests(int server_fd) {
     while (is_server_running) {
         int client_socket = accept_connection(server_fd);
         if (client_socket == -1) break;
+        if (set_client_timeout(client_socket) == -1) break;
         handle_client(client_socket);
     }
+}
+
+int set_client_timeout(int client_socket) {
+    struct timeval timeout = {5, 0};
+
+    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+        log_message(ERROR, "Couldn't set timeout time for client");
+        close(client_socket);
+        return -1;
+    }
+
+    log_message(INFO, "Successfully set timeout time for client");
+    return 0;
 }
 
 void start_listening(int server_fd) {
@@ -104,19 +120,27 @@ int accept_connection(int server_fd) {
 }
 
 void handle_client(int client_socket) {
-    char* raw_request = receive_request(client_socket);
-    if (raw_request == NULL) return;
+    while (1) {
+        char* raw_request = receive_request(client_socket);
+        if (raw_request == NULL) {
+            log_message(WARN, "Client closed connection or invalid request");
+            break;
+        }
 
-    struct Request request = parse_request(raw_request);
-    
-    if (send_response(client_socket, request) == -1) {
-        log_message(ERROR, "Response not sent");
+        struct Request request = parse_request(raw_request);
+        send_response(client_socket, request);
+        free(raw_request);
+
+        if (!is_keep_alive(request.headers)) {
+            log_message(INFO, "Connection: close - closing client socket");
+            break;
+        }
+
+        log_message(INFO, "Keep-Alive: waiting for next request on same connection");
     }
 
-    if (request.body) free(request.body);
-    free(raw_request);
-
     close(client_socket);
+    log_message(INFO, "Client socket closed");
 }
 
 char* receive_request(int client_socket) {
@@ -128,9 +152,11 @@ char* receive_request(int client_socket) {
     }
 
     size_t total_received_bytes = 0;
+    ssize_t received_bytes;
     while (1) {
-        ssize_t received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
+        received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
         if (received_bytes <= 0) {
+            log_message(ERROR, "Client disconnected or recv() error while reading headers");
             free(buffer);
             return NULL;
         }
@@ -139,17 +165,38 @@ char* receive_request(int client_socket) {
         buffer[total_received_bytes] = '\0';
 
         char* header_end = strstr(buffer, "\r\n\r\n");
-        if (header_end != NULL) {
-            return buffer;
-        }
+        if (header_end != NULL) break;
 
         if (total_received_bytes >= buffer_size) {
-            log_message(ERROR, "Received bytes count is bigger than raw request buffer size");
+            log_message(ERROR, "Received bytes exceed buffer size while reading headers");
             free(buffer);
             return NULL;
         }
     }
-    log_message(INFO, "Received request successfully");
+
+    size_t content_length = parse_content_length(buffer);
+    size_t header_length = strstr(buffer, "\r\n\r\n") - buffer + 4;
+    size_t expected_total = header_length + content_length;
+    while (total_received_bytes < expected_total) {
+        received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
+        if (received_bytes <= 0) {
+            log_message(ERROR, "Client disconnected or recv() error while reading body");
+            free(buffer);
+            return NULL;
+        }
+
+        total_received_bytes += (size_t)received_bytes;
+        buffer[total_received_bytes] = '\0';
+
+        if (total_received_bytes >= buffer_size) {
+            log_message(ERROR, "Received bytes exceed buffer size while reading body");
+            free(buffer);
+            return NULL;
+        }
+    }
+
+    log_message(INFO, "Received complete HTTP request");
+    return buffer;
 }
 
 int send_response(int client_socket, struct Request request) {

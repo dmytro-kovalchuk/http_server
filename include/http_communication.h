@@ -35,4 +35,6 @@ struct Response handle_method_other();
 
 char* convert_struct_to_string(struct Response response);
 
+int is_keep_alive(const char* headers);
+
 #endif

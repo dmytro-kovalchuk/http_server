@@ -17,6 +17,8 @@ void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr);
 
 void handle_requests(int server_fd);
 
+int set_client_timeout(int client_socket);
+
 void start_listening(int server_fd);
 
 int accept_connection(int server_fd);

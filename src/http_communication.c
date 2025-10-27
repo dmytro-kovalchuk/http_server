@@ -6,10 +6,10 @@
 #include "../include/file_storage.h"
 #include "../include/logger.h"
 
-#define STATUS_200_OK           "HTTP/1.1 200 OK"
-#define STATUS_201_CREATED      "HTTP/1.1 201 Created"
-#define STATUS_404_NOT_FOUND    "HTTP/1.1 404 Not Found"
-#define STATUS_405_METHOD_NOT_ALLOWED "HTTP/1.1 405 Method Not Allowed"
+#define STATUS_200_OK                   "HTTP/1.1 200 OK"
+#define STATUS_201_CREATED              "HTTP/1.1 201 Created"
+#define STATUS_404_NOT_FOUND            "HTTP/1.1 404 Not Found"
+#define STATUS_405_METHOD_NOT_ALLOWED   "HTTP/1.1 405 Method Not Allowed"
 
 struct Request parse_request(const char* raw_request) {
     struct Request request = {0};
@@ -59,6 +59,12 @@ char* create_response(struct Request request) {
         response = handle_method_delete(request);
     } else {
         response = handle_method_other();
+    }
+
+    if (is_keep_alive(request.headers)) {
+        strcat(response.headers, "\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5, max=100");
+    } else {
+        strcat(response.headers, "\r\nConnection: close");
     }
 
     return convert_struct_to_string(response);
@@ -119,7 +125,7 @@ struct Response handle_method_post() {
 
     log_message(INFO, "POST method: file created");
     strcpy(response.status, STATUS_201_CREATED);
-    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 17");
+    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 14");
     response.body = strdup("File created.\n");
     response.body_size = response.body != NULL ? strlen(response.body) : 0;
 
@@ -133,13 +139,13 @@ struct Response handle_method_delete(struct Request request) {
     if (delete_file(request.path) == 0) {
         log_message(INFO, "DELETE method: file deleted");
         strcpy(response.status, STATUS_200_OK);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 15");
+        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 14");
         response.body = strdup("File deleted.\n");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
     } else {
         log_message(WARN, "DELETE method: file doesn't exists");
         strcpy(response.status, STATUS_404_NOT_FOUND);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
+        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 9");
         response.body = strdup("Not Found");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
     }
@@ -181,4 +187,18 @@ char* convert_struct_to_string(struct Response response) {
 
     log_message(INFO, "Response struct successfully converted to string");
     return response_str;
+}
+
+int is_keep_alive(const char* headers) {
+    const char* keep_alive_header = "Connection: keep-alive";
+    const char* conn_close_header = "Connection: close";
+
+    for (; *headers; headers++) {
+        if (strncasecmp(headers, keep_alive_header, strlen(keep_alive_header)) == 0) {
+            return 1;
+        } else if (strncasecmp(headers, conn_close_header, strlen(conn_close_header)) == 0) {
+            return 0;
+        }
+    }
+    return 0;
 }
