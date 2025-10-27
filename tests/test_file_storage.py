@@ -4,6 +4,9 @@ import socket
 import ctypes
 import tempfile
 
+dir = "./storage"
+filename = "/test.txt"
+
 @pytest.fixture
 def file_storage_lib():
     lib = ctypes.CDLL("build/test_file_storage.so")
@@ -57,9 +60,7 @@ def test_send_file_success(file_storage_lib, socket_pair):
 def test_receive_file_success(file_storage_lib, socket_pair):
     server, client = socket_pair
 
-    dir = "storage/"
     os.makedirs(dir, exist_ok=True)
-    filename = "test.txt"
     sent_data = b"Testing receive_file func"
     
     client.sendall(sent_data)
@@ -100,9 +101,7 @@ def test_receive_file_closed_socket(file_storage_lib, socket_pair):
     server, client = socket.socketpair()
     server.close()
 
-    dir = "storage/"
     os.makedirs(dir, exist_ok=True)
-    filename = "test.txt"
 
     result = file_storage_lib.receive_file(server.fileno(), filename.encode("utf-8"), 256, None, 0)
     assert result == -1
@@ -111,9 +110,6 @@ def test_receive_file_closed_socket(file_storage_lib, socket_pair):
 
 
 def test_delete_file_success(file_storage_lib):
-    dir = "storage/"
-    filename = "test.txt"
-    
     with open(dir + filename, "w") as file:
         file.write("data")
 
@@ -126,9 +122,6 @@ def test_delete_file_missing(file_storage_lib):
 
 
 def test_is_file_exists(file_storage_lib):
-    dir = "storage/"
-    filename = "test.txt"
-    
     with open(dir + filename, "w") as file:
         file.write("data")
 
@@ -137,13 +130,10 @@ def test_is_file_exists(file_storage_lib):
     
 
 def test_is_file_exists_missing(file_storage_lib):
-    assert file_storage_lib.is_file_exists("storage/nonexist.txt".encode()) == 0
+    assert file_storage_lib.is_file_exists("./storage/nonexist.txt".encode()) == 0
 
 
 def test_get_file_size(file_storage_lib):
-    dir = "storage/"
-    filename = "test.txt"
-    
     with open(dir + filename, "w") as file:
         file.write("data")
 
@@ -157,4 +147,4 @@ def test_set_file_location(file_storage_lib):
 
     file_storage_lib.set_file_location(buffer, filename)
 
-    assert buffer.value.decode("utf-8") == "storage/test.txt"
+    assert buffer.value.decode("utf-8") == "./storage/test.txt"
