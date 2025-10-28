@@ -23,7 +23,7 @@ void start_listening(int server_fd);
 
 int accept_connection(int server_fd);
 
-void handle_client(int client_socket);
+void* handle_client(void* arg);
 
 char* receive_request(int client_socket);
 

@@ -5,13 +5,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <pthread.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
 #include "../include/utils.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
-#include <http_communication.h>
 
 #define SERVER_PORT 8080
 
@@ -81,7 +81,18 @@ void handle_requests(int server_fd) {
         int client_socket = accept_connection(server_fd);
         if (client_socket == -1) break;
         if (set_client_timeout(client_socket) == -1) break;
-        handle_client(client_socket);
+
+        int* client_socket_ptr = malloc(sizeof(int));
+        *client_socket_ptr = client_socket;
+
+        pthread_t thread_id;
+        if (pthread_create(&thread_id, NULL, handle_client, client_socket_ptr) != 0) {
+            log_message(ERROR, "Couldn't create thread for new connection");
+            close(client_socket);
+            free(client_socket_ptr);
+        } else {
+            pthread_detach(thread_id);
+        }
     }
 }
 
@@ -119,7 +130,10 @@ int accept_connection(int server_fd) {
     return client_socket;
 }
 
-void handle_client(int client_socket) {
+void* handle_client(void* arg) {
+    int client_socket = *(int*)arg;
+    free(arg);
+
     while (1) {
         char* raw_request = receive_request(client_socket);
         if (raw_request == NULL) {
@@ -141,6 +155,7 @@ void handle_client(int client_socket) {
 
     close(client_socket);
     log_message(INFO, "Client socket closed");
+    return NULL;
 }
 
 char* receive_request(int client_socket) {
@@ -225,20 +240,6 @@ void send_method_continue(int client_socket) {
 
 int send_method_post(int client_socket, struct Request request) {
     size_t content_size = parse_content_length(request.headers);
-
-    int received_bytes = receive_file(client_socket,
-                            request.path,
-                            content_size,
-                            request.body,
-                            request.body_size);
-
-    if (received_bytes != 0) {
-        const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
-        send(client_socket, error, strlen(error), 0);
-        if (request.body) free(request.body);
-        log_message(ERROR, "Failed to receive file");
-        return -1;
-    }
 
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
