@@ -189,16 +189,6 @@ char* convert_struct_to_string(struct Response response) {
     return response_str;
 }
 
-int is_keep_alive(const char* headers) {
-    const char* keep_alive_header = "Connection: keep-alive";
-    const char* conn_close_header = "Connection: close";
-
-    for (; *headers; headers++) {
-        if (strncasecmp(headers, keep_alive_header, strlen(keep_alive_header)) == 0) {
-            return 1;
-        } else if (strncasecmp(headers, conn_close_header, strlen(conn_close_header)) == 0) {
-            return 0;
-        }
-    }
-    return 0;
+int is_keep_alive(const char* headers) {  
+    return strstr(headers, "Connection: keep-alive") != NULL;
 }
