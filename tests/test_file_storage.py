@@ -143,7 +143,7 @@ def test_get_file_size(file_storage_lib):
 
 def test_set_file_location(file_storage_lib):
     buffer = ctypes.create_string_buffer(512)
-    filename = b"test.txt"
+    filename = b"/test.txt"
 
     file_storage_lib.set_file_location(buffer, filename)
 
