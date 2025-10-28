@@ -241,6 +241,20 @@ void send_method_continue(int client_socket) {
 int send_method_post(int client_socket, struct Request request) {
     size_t content_size = parse_content_length(request.headers);
 
+    int received_bytes = receive_file(client_socket,
+                            request.path,
+                            content_size,
+                            request.body,
+                            request.body_size);
+
+    if (received_bytes != 0) {
+        const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
+        send(client_socket, error, strlen(error), 0);
+        if (request.body) free(request.body);
+        log_message(ERROR, "Failed to receive file");
+        return -1;
+    }
+
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
