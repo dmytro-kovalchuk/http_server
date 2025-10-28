@@ -7,7 +7,10 @@
 #define STORAGE_DIR "./storage"
 #define MAX_FILE_PATH 512
 
-int send_file(int client_socket, const char* path) {
+int send_file(int client_socket, const char* filename) {
+    char path[MAX_FILE_PATH];
+    set_file_location(path, filename);
+
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
         log_message(ERROR, "Couldn't open file");
@@ -18,11 +21,15 @@ int send_file(int client_socket, const char* path) {
     size_t bytes_read;
 
     while((bytes_read = fread(buffer, 1, BUFSIZ, file)) > 0) {
-        ssize_t bytes_sent = send(client_socket, buffer, bytes_read, 0);
-        if (bytes_sent == -1) {
-            log_message(ERROR, "Failed to send file");
-            fclose(file);
-            return -1;
+        size_t total_sent = 0;
+        while (total_sent < bytes_read) {
+            ssize_t bytes_sent = send(client_socket, buffer + total_sent, bytes_read - total_sent, 0);
+            if (bytes_sent <= 0) {
+                log_message(ERROR, "Failed to send file");
+                fclose(file);
+                return -1;
+            }
+            total_sent += bytes_sent;
         }
     }
 

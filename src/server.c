@@ -189,36 +189,11 @@ char* receive_request(int client_socket) {
         }
     }
 
-    size_t content_length = parse_content_length(buffer);
-    size_t header_length = strstr(buffer, "\r\n\r\n") - buffer + 4;
-    size_t expected_total = header_length + content_length;
-    while (total_received_bytes < expected_total) {
-        received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
-        if (received_bytes <= 0) {
-            log_message(ERROR, "Client disconnected or recv() error while reading body");
-            free(buffer);
-            return NULL;
-        }
-
-        total_received_bytes += (size_t)received_bytes;
-        buffer[total_received_bytes] = '\0';
-
-        if (total_received_bytes >= buffer_size) {
-            log_message(ERROR, "Received bytes exceed buffer size while reading body");
-            free(buffer);
-            return NULL;
-        }
-    }
-
-    log_message(INFO, "Received complete HTTP request");
+    log_message(INFO, "Received HTTP headers");
     return buffer;
 }
 
 int send_response(int client_socket, struct Request request) {
-    if (strstr(request.headers, "Expect: 100-continue")) {
-        send_method_continue(client_socket);
-    }
-    
     if (strcmp(request.method, "POST") == 0) {
         return send_method_post(client_socket, request);
     } else if (strcmp(request.method, "GET") == 0) {
@@ -240,17 +215,18 @@ void send_method_continue(int client_socket) {
 
 int send_method_post(int client_socket, struct Request request) {
     size_t content_size = parse_content_length(request.headers);
+    
+    if (strstr(request.headers, "Expect: 100-continue") != NULL) {
+        const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
+        send(client_socket, continue_response, strlen(continue_response), 0);
+        log_message(INFO, "Sent 100 Continue");
+    }
 
-    int received_bytes = receive_file(client_socket,
-                            request.path,
-                            content_size,
-                            request.body,
-                            request.body_size);
+    int result = receive_file(client_socket, request.path, content_size, request.body, request.body_size);
 
-    if (received_bytes != 0) {
+    if (result != 0) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
-        if (request.body) free(request.body);
         log_message(ERROR, "Failed to receive file");
         return -1;
     }

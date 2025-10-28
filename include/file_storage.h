@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 
-int send_file(int client_socket, const char* path);
+int send_file(int client_socket, const char* filename);
 
 int receive_file(int client_socket, const char* filename, size_t content_size,
                  const void* received_body, size_t received_body_size);

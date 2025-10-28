@@ -4,3 +4,5 @@
 /.pytest_cache/
 /storage/
 /.vscode/
+/*.dat
+/test_file_transfer.sh
