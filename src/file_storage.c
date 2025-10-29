@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <sys/socket.h>
 #include "../include/logger.h"
+#include "../include/config.h"
 
-#define STORAGE_DIR "./storage"
 #define MAX_FILE_PATH 512
 
 int send_file(int client_socket, const char* filename) {
@@ -107,5 +107,5 @@ size_t get_file_size(const char* filename) {
 }
 
 void set_file_location(char* output, const char* filename) {
-    snprintf(output, MAX_FILE_PATH, STORAGE_DIR "%s", filename);
+    snprintf(output, MAX_FILE_PATH,  "%s%s", get_root_dir_from_config(), filename);
 }

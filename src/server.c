@@ -9,17 +9,19 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include "../include/utils.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
-
-#define SERVER_PORT 8080
+#include "../include/config.h"
 
 volatile sig_atomic_t is_server_running = 1;
 int g_server_fd = -1;
 
 void start_server() {
     signal(SIGINT, handle_sigint);
+    load_config("../config.json");
+
     g_server_fd = create_file_descriptor();
     struct sockaddr_in server_addr = create_server_addr();
     bind_addr_to_socket(g_server_fd, server_addr);
@@ -61,8 +63,8 @@ void make_port_reusable(int server_fd) {
 struct sockaddr_in create_server_addr() {
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_port = htons(get_port_from_config());
+    inet_pton(AF_INET, get_ip_from_config(), &server_addr.sin_addr);
     log_message(INFO, "Created server address struct");
     return server_addr;
 }

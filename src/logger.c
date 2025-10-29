@@ -3,13 +3,14 @@
     #include <stdio.h>
     #include <time.h>
     #include <string.h>
+    #include "../include/config.h"
 
     void log_message(enum Level level, const char* message) {
         if (message == NULL) {
             return;
         }
 
-        FILE* log_file = fopen(LOG_FILE_NAME, "a");
+        FILE* log_file = fopen(get_log_file_from_config(), "a");
         if (log_file == NULL) {
             perror("Failed to open log file");
             return;

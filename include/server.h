@@ -3,8 +3,6 @@
 
 #include "../include/http_communication.h"
 
-#define MIN_REQUEST_LEN 5
-
 void start_server();
 
 int create_file_descriptor();
