@@ -18,6 +18,9 @@
 volatile sig_atomic_t is_server_running = 1;
 int g_server_fd = -1;
 
+volatile unsigned int active_clients = 0;
+pthread_mutex_t client_count_mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void start_server() {
     signal(SIGINT, handle_sigint);
     load_config("../config.json");
@@ -79,10 +82,21 @@ void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
 
 void handle_requests(int server_fd) {
     start_listening(server_fd);
+
     while (is_server_running) {
         int client_socket = accept_connection(server_fd);
         if (client_socket == -1) break;
         if (set_client_timeout(client_socket) == -1) break;
+
+        pthread_mutex_lock(&client_count_mutex);
+        if (active_clients > get_max_clients_from_config()) {
+            pthread_mutex_unlock(&client_count_mutex);
+            log_message(WARN, "Reached max clients count, connection rejected");
+            close(client_socket);
+            continue;
+        }
+        active_clients++;
+        pthread_mutex_unlock(&client_count_mutex);
 
         int* client_socket_ptr = malloc(sizeof(int));
         *client_socket_ptr = client_socket;
@@ -92,6 +106,10 @@ void handle_requests(int server_fd) {
             log_message(ERROR, "Couldn't create thread for new connection");
             close(client_socket);
             free(client_socket_ptr);
+
+            pthread_mutex_lock(&client_count_mutex);
+            active_clients--;
+            pthread_mutex_unlock(&client_count_mutex);
         } else {
             pthread_detach(thread_id);
         }
@@ -112,7 +130,7 @@ int set_client_timeout(int client_socket) {
 }
 
 void start_listening(int server_fd) {
-    if (listen(server_fd, SOMAXCONN) == -1) {
+    if (listen(server_fd, get_max_clients_from_config()) == -1) {
         log_message(FATAL, "Couldn't listen on socket");
         exit(EXIT_FAILURE);
     }
@@ -157,6 +175,11 @@ void* handle_client(void* arg) {
 
     close(client_socket);
     log_message(INFO, "Client socket closed");
+
+    pthread_mutex_lock(&client_count_mutex);
+    active_clients--;
+    pthread_mutex_unlock(&client_count_mutex);
+
     return NULL;
 }
 
