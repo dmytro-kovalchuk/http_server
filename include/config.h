@@ -15,7 +15,7 @@ char* read_config(const char* path);
 
 struct Config parse_config(const char* config_str);
 
-void get_value_from_config(const char* config_str, const char* field, char* output);
+int get_value_from_config(const char* config_str, const char* field, char* output);
 
 char* get_ip_from_config();
 
