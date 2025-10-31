@@ -15,6 +15,9 @@ class SockAddrIn(ctypes.Structure):
 def server_lib():
     lib = ctypes.CDLL("build/test_server.so")
 
+    lib.load_config.argtypes = [ctypes.c_char_p]
+    lib.load_config.restype = None
+
     lib.create_file_descriptor.restype = ctypes.c_int
 
     lib.make_port_reusable.argtypes = [ctypes.c_int]
@@ -50,6 +53,11 @@ def server_lib():
     lib.send_method_post.restype = ctypes.c_int
 
     return lib
+
+
+@pytest.fixture(autouse=True)
+def auto_load_config(server_lib):
+    server_lib.load_config("../config.json".encode())
 
 
 def test_create_file_descriptor(server_lib):

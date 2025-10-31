@@ -10,6 +10,9 @@ filename = "/test.txt"
 @pytest.fixture
 def file_storage_lib():
     lib = ctypes.CDLL("build/test_file_storage.so")
+
+    lib.load_config.argtypes = [ctypes.c_char_p]
+    lib.load_config.restype = None
     
     lib.send_file.argtypes = [ctypes.c_int, ctypes.c_char_p]
     lib.send_file.restype = ctypes.c_int
@@ -30,6 +33,12 @@ def file_storage_lib():
     lib.set_file_location.restype = None
 
     return lib
+
+
+@pytest.fixture(autouse=True)
+def auto_load_config(file_storage_lib):
+    file_storage_lib.load_config("../config.json".encode())
+
 
 @pytest.fixture
 def socket_pair():

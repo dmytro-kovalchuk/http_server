@@ -20,9 +20,19 @@ def get_level_name(num):
 @pytest.fixture
 def logger_lib():
     lib = ctypes.CDLL("build/test_logger.so")
+
+    lib.load_config.argtypes = [ctypes.c_char_p]
+    lib.load_config.restype = None
+
     lib.log_message.argtypes = [ctypes.c_int, ctypes.c_char_p]
     lib.log_message.restype = None
+
     return lib
+
+
+@pytest.fixture(autouse=True)
+def auto_load_config(logger_lib):
+    logger_lib.load_config("../config.json".encode())
 
 
 @pytest.mark.parametrize(

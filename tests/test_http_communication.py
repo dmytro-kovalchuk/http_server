@@ -24,7 +24,10 @@ class Response(ctypes.Structure):
 
 @pytest.fixture
 def http_communication_lib():
-    lib = ctypes.CDLL("build/test_http_communication.so") 
+    lib = ctypes.CDLL("build/test_http_communication.so")
+
+    lib.load_config.argtypes = [ctypes.c_char_p]
+    lib.load_config.restype = None
 
     lib.parse_request.argtypes = [ctypes.c_char_p]
     lib.parse_request.restype = Request
@@ -39,6 +42,11 @@ def http_communication_lib():
     lib.is_keep_alive.restype = ctypes.c_int
 
     return lib
+
+
+@pytest.fixture(autouse=True)
+def auto_load_config(http_communication_lib):
+    http_communication_lib.load_config("../config.json".encode())
 
 
 def test_parse_request(http_communication_lib):
