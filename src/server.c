@@ -1,3 +1,20 @@
+/**
+    * @file: server.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains the implementation of the server logic,
+    * responsible for managing socket creation, configuration, and
+    * lifecycle control of client connections.
+    *
+    * It implements multithreaded request handling using POSIX threads
+    * and integrates with HTTP parsing, logging, and file storage modules
+    * to process and respond to HTTP client requests.
+    *
+    * The server supports handling of HTTP GET, POST, and DELETE methods,
+    * connection timeouts, Keep-Alive sessions, and safe shutdown
+    * on termination signals.
+*/
+
 #include "../include/server.h"
 
 #include <stdio.h>

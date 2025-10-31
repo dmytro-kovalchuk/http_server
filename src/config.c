@@ -1,3 +1,16 @@
+/**
+    * @file: config.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains definitions of functions related to
+    * configuration management for the server application.
+    *
+    * It handles reading, parsing, and loading of configuration
+    * data from a specified file into a structured format used
+    * throughout the program. If no configuration file is found
+    * or certain fields are missing, default values are applied.
+*/
+
 #include "../include/config.h"
 
 #include <stdio.h>

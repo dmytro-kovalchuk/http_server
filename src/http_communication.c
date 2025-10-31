@@ -1,3 +1,21 @@
+/**
+    * @file: http_communication.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains definitions of functions that handle
+    * HTTP communication logic for the server application.
+    *
+    * It implements parsing of HTTP requests, generation of
+    * appropriate HTTP responses, and handling of supported
+    * methods such as GET, POST, and DELETE. Unsupported
+    * methods result in an HTTP 405 response.
+    *
+    * Additionally, this file includes functionality for
+    * converting response structures into raw HTTP strings,
+    * extracting header information such as Content-Length,
+    * and determining whether connections should be kept alive.
+*/
+
 #include "../include/http_communication.h"
 
 #include <stdio.h>

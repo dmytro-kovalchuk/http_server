@@ -1,3 +1,16 @@
+/**
+    * @file: file_storage.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains definitions of functions responsible for
+    * handling file operations within the server application.
+    *
+    * It provides functionality for sending, receiving, deleting,
+    * and verifying the existence of files. Additionally, it handles
+    * file path resolution based on the server’s configured root
+    * directory.
+*/
+
 #include "../include/file_storage.h"
 
 #include <stdio.h>

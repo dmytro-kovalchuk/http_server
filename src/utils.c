@@ -1,3 +1,16 @@
+/**
+    * @file: utils.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains implementation of utility functions
+    * used across the server application.
+    *
+    * It provides functionality for handling system signals,
+    * such as SIGINT, to ensure a graceful server shutdown by
+    * properly terminating active connections and releasing
+    * resources.
+*/
+
 #include "../include/utils.h"
 
 #include <signal.h>
