@@ -52,18 +52,19 @@ def test_send_file_success(file_storage_lib, socket_pair):
     server, client = socket_pair
     sent_data = b"Testing send_file func"
 
-    with tempfile.NamedTemporaryFile(delete=False) as file:
-        file.write(sent_data)
-        file.flush()
-        filename = file.name
+    os.makedirs(dir, exist_ok=True)
 
-    result = file_storage_lib.send_file(client.fileno(), filename.encode())
+    full_path = os.path.join(dir, "test.txt")
+    with open(full_path, "wb") as f:
+        f.write(sent_data)
+
+    result = file_storage_lib.send_file(client.fileno(), b"/test.txt")
     assert result == 0
 
     received_data = server.recv(len(sent_data))
     assert received_data == sent_data
 
-    os.remove(filename)
+    os.remove(full_path)
 
 
 def test_receive_file_success(file_storage_lib, socket_pair):
