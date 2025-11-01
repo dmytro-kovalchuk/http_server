@@ -17,7 +17,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
-#include "../include/logger.h"
 
 #define DEFAULT_IP_VALUE "127.0.0.1"
 #define DEFAULT_PORT_VALUE 8080
