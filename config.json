@@ -1,0 +1,7 @@
+{
+    "ip": "127.0.0.1",
+    "port": 8080,
+    "max_clients": 3,
+    "root_directory": "./storage",
+    "log_file": "log.txt"
+}
