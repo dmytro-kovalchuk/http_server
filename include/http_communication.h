@@ -2,8 +2,8 @@
     * @file: http_communication.h
     * @author: Dmytro Kovalchuk
     *
-    * This file contains declarations of structures and functions
-    * responsible for handling HTTP communication within the server.
+    * This file contains declarations of functions responsible for
+    * handling HTTP communication within the server.
     *
     * It provides functionality for parsing HTTP requests, generating
     * responses, and managing various HTTP methods such as GET, POST,
@@ -14,34 +14,7 @@
 #ifndef HTTP_COMMUNICATION_H
 #define HTTP_COMMUNICATION_H
 
-typedef unsigned long size_t;
-
-/**
-    * @struct Request
-    * @brief Represents an HTTP request received from a client.
-*/
-struct Request {
-    char method[16];       /**< The HTTP method (e.g., GET, POST, DELETE). */
-    char path[512];        /**< The requested path or resource URI. */
-    char version[32];      /**< The HTTP version (e.g., HTTP/1.1). */
-    char headers[8192];    /**< The raw request headers. */
-    char* body;            /**< Pointer to the request body (optional). */
-    size_t body_size;      /**< Size of the request body in bytes. */
-};
-
-/**
-    * @struct Response
-    * @brief Represents an HTTP response sent to a client.
-    *
-    * This structure contains the response status line, headers,
-    * and optional body content returned to the client.
-*/
-struct Response {
-    char status[64];       /**< The HTTP status line (e.g., 200 OK). */
-    char headers[256];     /**< The HTTP response headers. */
-    char* body;            /**< Pointer to the response body (optional). */
-    size_t body_size;      /**< Size of the response body in bytes. */
-};
+#include "http_messages.h"
 
 /**
     * Parses a raw HTTP request string into a structured Request object.
