@@ -12,6 +12,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#define MAX_PATH_LEN 256
+
 /**
     * @struct Config
     * @brief Structure representing the server configuration parameters.
@@ -20,8 +22,8 @@ struct Config {
     unsigned int ip;              /**< The IP address of the server. */
     unsigned int port;            /**< The port number on which the server listens. */
     unsigned int max_clients;     /**< Maximum number of clients the server can handle concurrently. */
-    char root_directory[256];     /**< Path to the root directory of the server's file storage. */
-    char log_file[256];           /**< Path to the server's log file. */
+    char root_directory[MAX_PATH_LEN];     /**< Path to the root directory of the server's file storage. */
+    char log_file[MAX_PATH_LEN];           /**< Path to the server's log file. */
 };
 
 /**
