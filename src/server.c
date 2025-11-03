@@ -286,7 +286,11 @@ static void handle_requests(int server_fd) {
 
 void start_server() {
     signal(SIGINT, handle_sigint);
-    load_config("../config.json");
+    if (load_config("../config.json") == 0) {
+        log_message(WARN, "Failed to load config");
+    } else {
+        log_message(INFO, "Loaded config successfully");
+    }
 
     g_server_fd = create_file_descriptor();
     struct sockaddr_in server_addr = create_server_addr();
