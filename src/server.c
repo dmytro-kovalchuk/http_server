@@ -84,7 +84,7 @@ struct sockaddr_in create_server_addr() {
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(get_port_from_config());
-    inet_pton(AF_INET, get_ip_from_config(), &server_addr.sin_addr);
+    server_addr.sin_addr.s_addr = htonl(get_ip_from_config());
     log_message(INFO, "Created server address struct");
     return server_addr;
 }

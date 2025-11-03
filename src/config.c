@@ -17,8 +17,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <arpa/inet.h>
 
-#define DEFAULT_IP_VALUE "127.0.0.1"
+#define DEFAULT_IP_VALUE INADDR_LOOPBACK
 #define DEFAULT_PORT_VALUE 8080
 #define DEFAULT_MAX_CLIENTS_VALUE 5
 #define DEFAULT_ROOT_DIR_VALUE "./storage"
@@ -67,7 +68,7 @@ static int get_value_from_config(const char* config_str, const char* field, char
 
 static struct Config parse_config(const char* config_str) {
     struct Config parsed_config;
-    strncpy(parsed_config.ip, DEFAULT_IP_VALUE, sizeof(parsed_config.ip));
+    parsed_config.ip = DEFAULT_IP_VALUE;
     parsed_config.port = DEFAULT_PORT_VALUE;
     parsed_config.max_clients = DEFAULT_MAX_CLIENTS_VALUE;
     strncpy(parsed_config.root_directory, DEFAULT_ROOT_DIR_VALUE, sizeof(parsed_config.root_directory));
@@ -78,7 +79,10 @@ static struct Config parse_config(const char* config_str) {
     char buffer[256];
 
     if (get_value_from_config(config_str, "ip", buffer) == 0) {
-        strncpy(parsed_config.ip, buffer, sizeof(parsed_config.ip));
+        struct in_addr address;
+        if (inet_pton(AF_INET, buffer, &address) == 1) {
+            parsed_config.ip = ntohl(address.s_addr);
+        }
     }
 
     if (get_value_from_config(config_str, "port", buffer) == 0) {
@@ -143,7 +147,7 @@ void load_config(const char* path) {
     free(config_str);
 }
 
-char* get_ip_from_config() {
+int get_ip_from_config() {
     return config.ip;
 }
 

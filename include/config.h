@@ -17,7 +17,7 @@
     * @brief Structure representing the server configuration parameters.
 */
 struct Config {
-    char ip[32];                  /**< The IP address of the server. */
+    unsigned int ip;              /**< The IP address of the server. */
     unsigned int port;            /**< The port number on which the server listens. */
     unsigned int max_clients;     /**< Maximum number of clients the server can handle concurrently. */
     char root_directory[256];     /**< Path to the root directory of the server's file storage. */
@@ -42,7 +42,7 @@ void load_config(const char* path);
     *
     * @return Returns a pointer to the IP address string.
 */
-char* get_ip_from_config();
+int get_ip_from_config();
 
 /**
     * Retrieves the port number from the loaded configuration.
