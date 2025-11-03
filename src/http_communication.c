@@ -34,7 +34,18 @@ struct Request parse_request(const char* raw_request) {
     request.body = NULL;
     request.body_size = 0;
 
-    sscanf(raw_request, "%15s %511s %31s", request.method, request.path, request.version);
+    char method[16];
+    sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
+    
+    if (strcmp(method, "GET") == 0) {
+        request.method = GET;
+    } else if (strcmp(method, "POST") == 0) {
+        request.method = POST;
+    } else if (strcmp(method, "DELETE") == 0) {
+        request.method = DELETE;
+    } else {
+        request.method = UNKNOWN;
+    }
 
     const char* header_end = strstr(raw_request, "\r\n\r\n");
     if (header_end != NULL) {
@@ -69,14 +80,12 @@ char* create_response(struct Request request) {
     response.body = NULL;
     response.body_size = 0;
 
-    if (strcmp(request.method, "GET") == 0) {
-        response = handle_method_get(request);
-    } else if (strcmp(request.method, "POST") == 0) {
-        response = handle_method_post();
-    } else if (strcmp(request.method, "DELETE") == 0) {
-        response = handle_method_delete(request);
-    } else {
-        response = handle_method_other();
+    switch (request.method) {
+        case GET: response = handle_method_get(request); break;
+        case POST: response = handle_method_post(); break;
+        case DELETE: response = handle_method_delete(request); break;
+        case UNKNOWN: 
+        default: response = handle_method_other();
     }
 
     if (is_keep_alive(request.headers)) {

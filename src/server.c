@@ -236,14 +236,12 @@ char* receive_request(int client_socket) {
 }
 
 int send_response(int client_socket, struct Request request) {
-    if (strcmp(request.method, "POST") == 0) {
-        return send_method_post(client_socket, request);
-    } else if (strcmp(request.method, "GET") == 0) {
-        send_method_get(client_socket, request);
-    } else if (strcmp(request.method, "DELETE") == 0) {
-        send_method_delete(client_socket, request);
-    } else {
-        send_method_other(client_socket);
+    switch (request.method) {
+        case GET: send_method_get(client_socket, request); break;
+        case POST: send_method_post(client_socket, request); break;
+        case DELETE: send_method_delete(client_socket, request); break;
+        case UNKNOWN: 
+        default: send_method_other(client_socket);
     }
 
     return 0;

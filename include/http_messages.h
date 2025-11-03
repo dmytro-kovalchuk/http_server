@@ -14,12 +14,19 @@
 
 typedef unsigned long size_t;
 
+enum Method {
+    UNKNOWN,
+    GET,
+    POST,
+    DELETE
+};
+
 /**
     * @struct Request
     * @brief Represents an HTTP request received from a client.
 */
 struct Request {
-    char method[16];       /**< The HTTP method (e.g., GET, POST, DELETE). */
+    enum Method method;    /**< The HTTP method (e.g., GET, POST, DELETE). */
     char path[512];        /**< The requested path or resource URI. */
     char version[32];      /**< The HTTP version (e.g., HTTP/1.1). */
     char headers[8192];    /**< The raw request headers. */

@@ -1,10 +1,18 @@
 import ctypes
 import pytest
+from enum import IntEnum
+
+
+class Method(IntEnum):
+    UNKNOWN = 0
+    GET = 1
+    POST = 2
+    DELETE = 3
 
 
 class Request(ctypes.Structure):
     _fields_ = [
-        ("method", ctypes.c_char * 16),
+        ("method", ctypes.c_int),
         ("path", ctypes.c_char * 512),
         ("version", ctypes.c_char * 32),
         ("headers", ctypes.c_char * 8192),
@@ -52,7 +60,7 @@ def auto_load_config(http_communication_lib):
 def test_parse_request(http_communication_lib):
     raw = b"GET /test.txt HTTP/1.1\r\nConnection: keep-alive\r\n\r\n"
     req = http_communication_lib.parse_request(raw)
-    assert req.method.decode() == "GET"
+    assert req.method == Method.GET
     assert req.path.decode() == "/test.txt"
     assert req.version.decode() == "HTTP/1.1"
     assert b"Connection: keep-alive" in req.headers
