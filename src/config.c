@@ -142,22 +142,6 @@ void load_config(const char* path) {
     free(config_str);
 }
 
-int get_ip_from_config() {
-    return config.ip;
-}
-
-unsigned int get_port_from_config() {
-    return config.port;
-}
-
-unsigned int get_max_clients_from_config() {
-    return config.max_clients;
-}
-
-char* get_root_dir_from_config() {
-    return config.root_directory;
-}
-
-char* get_log_file_from_config() {
-    return config.log_file;
+const struct Config* get_config() {
+    return &config;
 }

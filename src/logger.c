@@ -22,7 +22,9 @@ void log_message(enum Level level, const char* message) {
         return;
     }
 
-    FILE* log_file = fopen(get_log_file_from_config(), "a");
+    const struct Config* config = get_config();
+
+    FILE* log_file = fopen(config->log_file, "a");
     if (log_file == NULL) {
         perror("Failed to open log file");
         return;

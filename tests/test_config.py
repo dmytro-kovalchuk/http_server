@@ -1,6 +1,5 @@
 import os
 import ctypes
-import tempfile
 import pytest
 
 
@@ -21,15 +20,8 @@ def int_to_ip(ip_int):
 @pytest.fixture
 def config_lib():
     lib = ctypes.CDLL(os.path.abspath("build/test_config.so"))
-
     lib.load_config.argtypes = [ctypes.c_char_p]
-
-    lib.get_ip_from_config.restype = ctypes.c_uint32
-    lib.get_port_from_config.restype = ctypes.c_uint
-    lib.get_max_clients_from_config.restype = ctypes.c_uint
-    lib.get_root_dir_from_config.restype = ctypes.c_char_p
-    lib.get_log_file_from_config.restype = ctypes.c_char_p
-
+    lib.get_config.restype = ctypes.POINTER(Config)
     return lib
 
 
@@ -44,10 +36,39 @@ def test_load_and_getters(config_lib, tmp_path, sample_config_str):
 
     config_lib.load_config(str(config_path).encode())
 
-    ip_int = config_lib.get_ip_from_config()
-    assert int_to_ip(ip_int) == "10.0.0.5"
+    cfg = config_lib.get_config().contents
 
-    assert config_lib.get_port_from_config() == 9090
-    assert config_lib.get_max_clients_from_config() == 12
-    assert config_lib.get_root_dir_from_config().decode() == "/data"
-    assert config_lib.get_log_file_from_config().decode() == "server.log"
+    assert int_to_ip(cfg.ip) == "10.0.0.5"
+    assert cfg.port == 9090
+    assert cfg.max_clients == 12
+    assert cfg.root_directory.decode() == "/data"
+    assert cfg.log_file.decode() == "server.log"
+
+
+def test_missing_fields_use_defaults(config_lib, tmp_path):
+    partial_config = b'{ "port": 8080 }\0'
+    config_path = tmp_path / "partial.json"
+    config_path.write_bytes(partial_config)
+
+    config_lib.load_config(str(config_path).encode())
+
+    cfg = config_lib.get_config().contents
+
+    assert cfg.ip == 2130706433 # 127.0.0.1
+    assert cfg.port == 8080
+    assert cfg.max_clients == 5
+    assert cfg.root_directory.startswith(b"./storage")
+    assert cfg.log_file.startswith(b"log.txt")
+
+
+def test_invalid_ip_and_port(config_lib, tmp_path):
+    invalid_config = b'{ "ip": "999.999.999.999", "port": 99999 }\0'
+    config_path = tmp_path / "invalid.json"
+    config_path.write_bytes(invalid_config)
+
+    config_lib.load_config(str(config_path).encode())
+
+    cfg = config_lib.get_config().contents
+
+    assert cfg.ip == 2130706433 # 127.0.0.1
+    assert cfg.port == 8080

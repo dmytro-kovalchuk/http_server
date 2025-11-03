@@ -126,10 +126,12 @@ static int create_file_descriptor() {
 }
 
 static struct sockaddr_in create_server_addr() {
+    const struct Config* config = get_config();
+
     struct sockaddr_in server_addr;
     server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(get_port_from_config());
-    server_addr.sin_addr.s_addr = htonl(get_ip_from_config());
+    server_addr.sin_port = htons(config->port);
+    server_addr.sin_addr.s_addr = htonl(config->ip);
     log_message(INFO, "Created server address struct");
     return server_addr;
 }
@@ -156,7 +158,8 @@ static int set_client_timeout(int client_socket) {
 }
 
 static void start_listening(int server_fd) {
-    if (listen(server_fd, get_max_clients_from_config()) == -1) {
+    const struct Config* config = get_config();
+    if (listen(server_fd, config->max_clients) == -1) {
         log_message(FATAL, "Couldn't listen on socket");
         exit(EXIT_FAILURE);
     }
@@ -211,7 +214,6 @@ static char* receive_request(int client_socket) {
     return buffer;
 }
 
-
 static void* handle_client(void* arg) {
     int client_socket = *(int*)arg;
     free(arg);
@@ -253,8 +255,9 @@ static void handle_requests(int server_fd) {
         if (client_socket == -1) break;
         if (set_client_timeout(client_socket) == -1) break;
 
+        const struct Config* config = get_config();
         pthread_mutex_lock(&client_count_mutex);
-        if (active_clients > get_max_clients_from_config()) {
+        if (active_clients > config->max_clients) {
             pthread_mutex_unlock(&client_count_mutex);
             log_message(WARN, "Reached max clients count, connection rejected");
             close(client_socket);

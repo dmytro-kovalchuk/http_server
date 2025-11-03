@@ -119,5 +119,6 @@ size_t get_file_size(const char* filename) {
 }
 
 void set_file_location(char* output, const char* filename) {
-    snprintf(output, MAX_PATH_LEN,  "%s%s", get_root_dir_from_config(), filename);
+    const struct Config* config = get_config();
+    snprintf(output, MAX_PATH_LEN,  "%s%s", config->root_directory, filename);
 }

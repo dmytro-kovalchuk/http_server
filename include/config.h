@@ -40,38 +40,10 @@ struct Config {
 void load_config(const char* path);
 
 /**
-    * Retrieves the IP address from the loaded configuration.
+    * Retrieves the const pointer to the const loaded configuration.
     *
-    * @return Returns a pointer to the IP address string.
+    * @return Returns a pointer to const pointer to const struct Config.
 */
-int get_ip_from_config();
-
-/**
-    * Retrieves the port number from the loaded configuration.
-    *
-    * @return Returns the configured port number.
-*/
-unsigned int get_port_from_config();
-
-/**
-    * Retrieves the maximum client count from the loaded configuration.
-    *
-    * @return Returns the maximum number of clients.
-*/
-unsigned int get_max_clients_from_config();
-
-/**
-    * Retrieves the root directory path from the loaded configuration.
-    *
-    * @return Returns a pointer to the root directory path string.
-*/
-char* get_root_dir_from_config();
-
-/**
-    * Retrieves the log file path from the loaded configuration.
-    *
-    * @return Returns a pointer to the log file path string.
-*/
-char* get_log_file_from_config();
+const struct Config* get_config();
 
 #endif // CONFIG_H
