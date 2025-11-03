@@ -13,7 +13,7 @@ class Method(IntEnum):
 class Request(ctypes.Structure):
     _fields_ = [
         ("method", ctypes.c_int),
-        ("path", ctypes.c_char * 512),
+        ("path", ctypes.c_char * 256),
         ("version", ctypes.c_char * 32),
         ("headers", ctypes.c_char * 8192),
         ("body", ctypes.c_char_p),
