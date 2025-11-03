@@ -17,11 +17,10 @@
 #include <sys/socket.h>
 #include "../include/logger.h"
 #include "../include/config.h"
-
-#define MAX_FILE_PATH 512
+#include "../include/common.h"
 
 int send_file(int client_socket, const char* filename) {
-    char path[MAX_FILE_PATH];
+    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
     FILE* file = fopen(path, "rb");
@@ -53,7 +52,7 @@ int send_file(int client_socket, const char* filename) {
 
 int receive_file(int client_socket, const char* filename, size_t file_size,
                  const void* received_body, size_t received_body_size) {
-    char path[MAX_FILE_PATH];
+    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
     FILE* file = fopen(path, "wb");
@@ -90,13 +89,13 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
 }
 
 int delete_file(const char* filename) {
-    char path[MAX_FILE_PATH];
+    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
     return remove(path);
 }
 
 int is_file_exists(const char* filename) {
-    char path[MAX_FILE_PATH];
+    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
     FILE* file = fopen(path, "r");
@@ -109,7 +108,7 @@ int is_file_exists(const char* filename) {
 }
 
 size_t get_file_size(const char* filename) {
-    char path[MAX_FILE_PATH];
+    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
     FILE* file = fopen(path, "rb");
@@ -120,5 +119,5 @@ size_t get_file_size(const char* filename) {
 }
 
 void set_file_location(char* output, const char* filename) {
-    snprintf(output, MAX_FILE_PATH,  "%s%s", get_root_dir_from_config(), filename);
+    snprintf(output, MAX_PATH_LEN,  "%s%s", get_root_dir_from_config(), filename);
 }

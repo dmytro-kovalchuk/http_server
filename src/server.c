@@ -201,7 +201,7 @@ void* handle_client(void* arg) {
 }
 
 char* receive_request(int client_socket) {
-    size_t buffer_size = 8192;
+    size_t buffer_size = BUFSIZ;
     char* buffer = malloc(buffer_size + 1);
     if (buffer == NULL) {
         log_message(ERROR, "Memory not allocated for raw request buffer");

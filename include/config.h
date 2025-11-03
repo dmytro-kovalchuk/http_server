@@ -12,7 +12,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define MAX_PATH_LEN 256
+#include "common.h"
 
 /**
     * @struct Config

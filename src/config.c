@@ -18,12 +18,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <arpa/inet.h>
-
-#define DEFAULT_IP_VALUE INADDR_LOOPBACK
-#define DEFAULT_PORT_VALUE 8080
-#define DEFAULT_MAX_CLIENTS_VALUE 5
-#define DEFAULT_ROOT_DIR_VALUE "./storage"
-#define DEFAULT_LOG_FILE_VALUE "log.txt"
+#include "../include/common.h"
 
 static struct Config config;
 
@@ -32,7 +27,7 @@ static int get_value_from_config(const char* config_str, const char* field, char
         return -1;
     }
 
-    char field_pattern[64];
+    char field_pattern[FIELD_PATTERN_SIZE];
     snprintf(field_pattern, sizeof(field_pattern), "\"%s\"", field);
 
     const char* field_position = strstr(config_str, field_pattern);
@@ -76,7 +71,7 @@ static struct Config parse_config(const char* config_str) {
 
     if (config_str == NULL) return parsed_config;
 
-    char buffer[256];
+    char buffer[CONFIG_FIELD_BUFFER_SIZE];
 
     if (get_value_from_config(config_str, "ip", buffer) == 0) {
         struct in_addr address;
@@ -87,7 +82,7 @@ static struct Config parse_config(const char* config_str) {
 
     if (get_value_from_config(config_str, "port", buffer) == 0) {
         int port = atoi(buffer);
-        if (port > 0 && port <= 65535) {
+        if (port > 0 && port <= MAX_PORT) {
             parsed_config.port = port;
         }
     }

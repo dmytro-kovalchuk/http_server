@@ -23,18 +23,14 @@
 #include <string.h>
 #include "../include/file_storage.h"
 #include "../include/logger.h"
-
-#define STATUS_200_OK                   "HTTP/1.1 200 OK"
-#define STATUS_201_CREATED              "HTTP/1.1 201 Created"
-#define STATUS_404_NOT_FOUND            "HTTP/1.1 404 Not Found"
-#define STATUS_405_METHOD_NOT_ALLOWED   "HTTP/1.1 405 Method Not Allowed"
+#include "../include/common.h"
 
 struct Request parse_request(const char* raw_request) {
     struct Request request = {0};
     request.body = NULL;
     request.body_size = 0;
 
-    char method[16];
+    char method[METHOD_STR_LEN];
     sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
     
     if (strcmp(method, "GET") == 0) {
@@ -194,7 +190,7 @@ struct Response handle_method_other() {
 }
 
 char* convert_struct_to_string(struct Response response) {
-    size_t total_size = 256 + (response.body_size);
+    size_t total_size = HTTP_STATUS_SIZE + HTTP_HEADER_SIZE + response.body_size + RESPONSE_EXTRA_BYTES;
     char* response_str = malloc(total_size);
     if (response_str == NULL) {
         log_message(ERROR, "Memory for response string not allocated");

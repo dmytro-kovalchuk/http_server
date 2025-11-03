@@ -12,6 +12,8 @@
 #ifndef HTTP_MESSAGES_H
 #define HTTP_MESSAGES_H
 
+#include "common.h"
+
 typedef unsigned long size_t;
 
 enum Method {
@@ -26,12 +28,12 @@ enum Method {
     * @brief Represents an HTTP request received from a client.
 */
 struct Request {
-    enum Method method;    /**< The HTTP method (e.g., GET, POST, DELETE). */
-    char path[512];        /**< The requested path or resource URI. */
-    char version[32];      /**< The HTTP version (e.g., HTTP/1.1). */
-    char headers[8192];    /**< The raw request headers. */
-    char* body;            /**< Pointer to the request body (optional). */
-    size_t body_size;      /**< Size of the request body in bytes. */
+    enum Method method;                 /**< The HTTP method (e.g., GET, POST, DELETE). */
+    char path[MAX_PATH_LEN];            /**< The requested path or resource URI. */
+    char version[HTTP_VERSION_SIZE];    /**< The HTTP version (e.g., HTTP/1.1). */
+    char headers[HTTP_HEADER_SIZE];     /**< The raw request headers. */
+    char* body;                         /**< Pointer to the request body (optional). */
+    size_t body_size;                   /**< Size of the request body in bytes. */
 };
 
 /**
@@ -42,10 +44,10 @@ struct Request {
     * and optional body content returned to the client.
 */
 struct Response {
-    char status[64];       /**< The HTTP status line (e.g., 200 OK). */
-    char headers[256];     /**< The HTTP response headers. */
-    char* body;            /**< Pointer to the response body (optional). */
-    size_t body_size;      /**< Size of the response body in bytes. */
+    char status[HTTP_STATUS_SIZE];      /**< The HTTP status line (e.g., 200 OK). */
+    char headers[HTTP_HEADER_SIZE];     /**< The HTTP response headers. */
+    char* body;                         /**< Pointer to the response body (optional). */
+    size_t body_size;                   /**< Size of the response body in bytes. */
 };
 
 #endif // HTTP_MESSAGES_h
