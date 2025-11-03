@@ -38,39 +38,6 @@ struct Config {
 void load_config(const char* path);
 
 /**
-    * Reads the contents of a configuration file.
-    *
-    * @param[in] path The path to the configuration file.
-    *
-    * @return Returns a dynamically allocated string containing
-    * the file contents, or NULL if reading fails.
-    *
-    * @note The caller is responsible for freeing the returned string.
-*/
-char* read_config(const char* path);
-
-/**
-    * Parses the configuration string and extracts key-value pairs.
-    *
-    * @param[in] config_str The raw configuration string.
-    *
-    * @return Returns a struct Config containing the parsed values.
-    * If any fields are missing or invalid, default values are applied.
-*/
-struct Config parse_config(const char* config_str);
-
-/**
-    * Retrieves the value of a specific field from the configuration string.
-    *
-    * @param[in] config_str The raw configuration string.
-    * @param[in] field The name of the configuration field to extract.
-    * @param[out] output Buffer where the extracted value will be stored.
-    *
-    * @return Returns 0 if the value was successfully retrieved, or -1 if failed.
-*/
-int get_value_from_config(const char* config_str, const char* field, char* output);
-
-/**
     * Retrieves the IP address from the loaded configuration.
     *
     * @return Returns a pointer to the IP address string.

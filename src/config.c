@@ -26,44 +26,46 @@
 
 static struct Config config;
 
-void load_config(const char* path) {
-    char* config_str = read_config(path);
-    config = parse_config(config_str);
-    free(config_str);
+static int get_value_from_config(const char* config_str, const char* field, char* output) {
+    if (config_str == NULL || field == NULL || output == NULL) {
+        return -1;
+    }
+
+    char field_pattern[64];
+    snprintf(field_pattern, sizeof(field_pattern), "\"%s\"", field);
+
+    const char* field_position = strstr(config_str, field_pattern);
+    if (field_position == NULL) return -1;
+
+    const char* curr_position = strchr(field_position, ':');
+    if (curr_position == NULL) return -1;
+
+    curr_position++;
+    while (isspace(*curr_position)) {
+        curr_position++;
+    }
+    if (*curr_position == '\0') return -1;
+
+    size_t value_length;
+    if (*curr_position == '\"') {
+        curr_position++;
+        const char* end = strchr(curr_position, '\"');
+        if (end == NULL) return -1;
+        value_length = end - curr_position;
+    } else {
+        const char* end = curr_position;
+        while (*end && *end != ',' && *end != '}') {
+            end++;
+        }
+        value_length = end - curr_position;
+    }
+
+    strncpy(output, curr_position, value_length);
+    output[value_length] = '\0';
+    return 0;
 }
 
-char* read_config(const char* path) {
-    FILE* file = fopen(path, "r");
-    if (file == NULL) {
-        return NULL;
-    }
-
-    fseek(file, 0, SEEK_END);
-    size_t size = ftell(file);
-    if (size <= 0) {
-        fclose(file);
-        return NULL;
-    }
-    rewind(file);
-
-    char* config_str = malloc(size + 1);
-    if (config_str == NULL) {
-        fclose(file);
-        return NULL;
-    }
-
-    size_t bytes_read = fread(config_str, 1, size, file);
-    if (bytes_read <= 0) {
-        fclose(file);
-        free(config_str);
-        return NULL;
-    }
-
-    config_str[size] = '\0';
-    return config_str;
-}
-
-struct Config parse_config(const char* config_str) {
+static struct Config parse_config(const char* config_str) {
     struct Config parsed_config;
     strncpy(parsed_config.ip, DEFAULT_IP_VALUE, sizeof(parsed_config.ip));
     parsed_config.port = DEFAULT_PORT_VALUE;
@@ -104,43 +106,41 @@ struct Config parse_config(const char* config_str) {
     return parsed_config;
 }
 
-int get_value_from_config(const char* config_str, const char* field, char* output) {
-    if (config_str == NULL || field == NULL || output == NULL) {
-        return -1;
+static char* read_config(const char* path) {
+    FILE* file = fopen(path, "r");
+    if (file == NULL) {
+        return NULL;
     }
 
-    char field_pattern[64];
-    snprintf(field_pattern, sizeof(field_pattern), "\"%s\"", field);
-
-    const char* field_position = strstr(config_str, field_pattern);
-    if (field_position == NULL) return -1;
-
-    const char* curr_position = strchr(field_position, ':');
-    if (curr_position == NULL) return -1;
-
-    curr_position++;
-    while (isspace(*curr_position)) {
-        curr_position++;
+    fseek(file, 0, SEEK_END);
+    size_t size = ftell(file);
+    if (size <= 0) {
+        fclose(file);
+        return NULL;
     }
-    if (*curr_position == '\0') return -1;
+    rewind(file);
 
-    size_t value_length;
-    if (*curr_position == '\"') {
-        curr_position++;
-        const char* end = strchr(curr_position, '\"');
-        if (end == NULL) return -1;
-        value_length = end - curr_position;
-    } else {
-        const char* end = curr_position;
-        while (*end && *end != ',' && *end != '}') {
-            end++;
-        }
-        value_length = end - curr_position;
+    char* config_str = malloc(size + 1);
+    if (config_str == NULL) {
+        fclose(file);
+        return NULL;
     }
 
-    strncpy(output, curr_position, value_length);
-    output[value_length] = '\0';
-    return 0;
+    size_t bytes_read = fread(config_str, 1, size, file);
+    if (bytes_read <= 0) {
+        fclose(file);
+        free(config_str);
+        return NULL;
+    }
+
+    config_str[size] = '\0';
+    return config_str;
+}
+
+void load_config(const char* path) {
+    char* config_str = read_config(path);
+    config = parse_config(config_str);
+    free(config_str);
 }
 
 char* get_ip_from_config() {
