@@ -62,12 +62,6 @@ static int get_value_from_config(const char* config_str, const char* field, char
 }
 
 static int parse_and_set_config(char* config_str) {
-    config.ip = DEFAULT_IP_VALUE;
-    config.port = DEFAULT_PORT_VALUE;
-    config.max_clients = DEFAULT_MAX_CLIENTS_VALUE;
-    strncpy(config.root_directory, DEFAULT_ROOT_DIR_VALUE, sizeof(config.root_directory));
-    strncpy(config.log_file, DEFAULT_LOG_FILE_VALUE, sizeof(config.log_file));
-
     if (config_str == NULL) return -1;
 
     char buffer[CONFIG_FIELD_BUFFER_SIZE];
@@ -136,7 +130,16 @@ static char* read_config(const char* path) {
     return config_str;
 }
 
+static void initialize_config() {
+    config.ip = DEFAULT_IP_VALUE;
+    config.port = DEFAULT_PORT_VALUE;
+    config.max_clients = DEFAULT_MAX_CLIENTS_VALUE;
+    strncpy(config.root_directory, DEFAULT_ROOT_DIR_VALUE, sizeof(config.root_directory));
+    strncpy(config.log_file, DEFAULT_LOG_FILE_VALUE, sizeof(config.log_file));
+}
+
 int load_config(const char* path) {
+    initialize_config();
     char* config_str = read_config(path);
     return parse_and_set_config(config_str);
 }
