@@ -295,8 +295,7 @@ static void handle_requests(int server_fd) {
     }
 }
 
-void start_server() {
-    signal(SIGINT, handle_sigint);
+void server_start() {
     if (load_config("../config.json") == 0) {
         log_message(WARN, "Failed to load config");
     } else {
@@ -309,10 +308,11 @@ void start_server() {
     
     puts("Server is started. Press Ctrl+C to stop it...");
     log_message(INFO, "Server is started");
-    
     handle_requests(g_server_fd);
+}
+
+void server_stop() {
     close(g_server_fd);
     g_server_fd = -1;
-
     log_message(INFO, "Server is stopped!");
 }

@@ -27,6 +27,11 @@
     * creates and binds the server socket, and begins handling client
     * requests until termination.
 */
-void start_server();
+void server_start();
+
+/**
+    * Stops the server and closes server socket.
+*/
+void server_stop();
 
 #endif // SERVER_H
