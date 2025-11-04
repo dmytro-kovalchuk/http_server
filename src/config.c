@@ -24,29 +24,29 @@ static struct Config config;
 
 static int get_value_from_config(const char* config_str, const char* field, char* output) {
     if (config_str == NULL || field == NULL || output == NULL) {
-        return -1;
+        return RET_ARGUMENT_IS_NULL;
     }
 
     char field_pattern[FIELD_PATTERN_SIZE];
     snprintf(field_pattern, sizeof(field_pattern), "\"%s\"", field);
 
     const char* field_position = strstr(config_str, field_pattern);
-    if (field_position == NULL) return -1;
+    if (field_position == NULL) return RET_CONFIG_PARSING_ERROR;
 
     const char* curr_position = strchr(field_position, ':');
-    if (curr_position == NULL) return -1;
+    if (curr_position == NULL) return RET_CONFIG_PARSING_ERROR;
 
     curr_position++;
     while (isspace(*curr_position)) {
         curr_position++;
     }
-    if (*curr_position == '\0') return -1;
+    if (*curr_position == '\0') return RET_CONFIG_PARSING_ERROR;
 
     size_t value_length;
     if (*curr_position == '\"') {
         curr_position++;
         const char* end = strchr(curr_position, '\"');
-        if (end == NULL) return -1;
+        if (end == NULL) return RET_CONFIG_PARSING_ERROR;
         value_length = end - curr_position;
     } else {
         const char* end = curr_position;
@@ -58,48 +58,50 @@ static int get_value_from_config(const char* config_str, const char* field, char
 
     strncpy(output, curr_position, value_length);
     output[value_length] = '\0';
-    return 0;
+    return RET_SUCCESS;
 }
 
 static int parse_and_set_config(char* config_str) {
-    if (config_str == NULL) return -1;
+    if (config_str == NULL) return RET_ARGUMENT_IS_NULL;
 
     char buffer[CONFIG_FIELD_BUFFER_SIZE];
 
-    if (get_value_from_config(config_str, "ip", buffer) == 0) {
+    if (get_value_from_config(config_str, "ip", buffer) == RET_SUCCESS) {
         struct in_addr address;
         if (inet_pton(AF_INET, buffer, &address) == 1) {
             config.ip = ntohl(address.s_addr);
         }
     }
 
-    if (get_value_from_config(config_str, "port", buffer) == 0) {
+    if (get_value_from_config(config_str, "port", buffer) == RET_SUCCESS) {
         int port = atoi(buffer);
         if (port > 0 && port <= MAX_PORT) {
             config.port = port;
         }
     }
 
-    if (get_value_from_config(config_str, "max_clients", buffer) == 0) {
+    if (get_value_from_config(config_str, "max_clients", buffer) == RET_SUCCESS) {
         int clients = atoi(buffer);
         if (clients > 0) {
             config.max_clients = clients;
         }   
     }
 
-    if (get_value_from_config(config_str, "root_directory", buffer) == 0) {
+    if (get_value_from_config(config_str, "root_directory", buffer) == RET_SUCCESS) {
         strncpy(config.root_directory, buffer, sizeof(config.root_directory));  
     }
 
-    if (get_value_from_config(config_str, "log_file", buffer) == 0) {
+    if (get_value_from_config(config_str, "log_file", buffer) == RET_SUCCESS) {
         strncpy(config.log_file, buffer, sizeof(config.log_file));
     }
 
     free(config_str);
-    return 0;
+    return RET_SUCCESS;
 }
 
 static char* read_config(const char* path) {
+    if (path == NULL) return NULL;
+
     FILE* file = fopen(path, "r");
     if (file == NULL) {
         return NULL;
@@ -138,7 +140,7 @@ static void initialize_config() {
     strncpy(config.log_file, DEFAULT_LOG_FILE_VALUE, sizeof(config.log_file));
 }
 
-int load_config(const char* path) {
+enum ReturnCode load_config(const char* path) {
     initialize_config();
     char* config_str = read_config(path);
     return parse_and_set_config(config_str);

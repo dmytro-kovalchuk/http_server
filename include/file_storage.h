@@ -21,9 +21,9 @@
     * @param[in] client_socket The client socket descriptor.
     * @param[in] filename The name of the file to send.
     *
-    * @return Returns 0 on success or -1 on failure.
+    * @return Returns 0 on success or error code on failure.
 */
-int send_file(int client_socket, const char* filename);
+enum ReturnCode send_file(int client_socket, const char* filename);
 
 /**
     * Receives a file from the specified client socket.
@@ -35,9 +35,9 @@ int send_file(int client_socket, const char* filename);
     * the first part of the received data.
     * @param[in] received_body_size The size of the initial received data.
     *
-    * @return Returns 0 on success or -1 on failure.
+    * @return Returns 0 on success or error code on failure.
 */
-int receive_file(int client_socket, const char* filename, size_t content_size,
+enum ReturnCode receive_file(int client_socket, const char* filename, size_t content_size,
                  const void* received_body, size_t received_body_size);
 
 /**
@@ -45,18 +45,18 @@ int receive_file(int client_socket, const char* filename, size_t content_size,
     *
     * @param[in] filename The name of the file to delete.
     *
-    * @return Returns 0 on success or -1 if the deletion fails.
+    * @return Returns 0 on success or error code if the deletion fails.
 */
-int delete_file(const char* filename);
+enum ReturnCode delete_file(const char* filename);
 
 /**
     * Checks whether a file exists in the server’s storage.
     *
     * @param[in] filename The name of the file to check.
     *
-    * @return Returns 1 if the file exists, or 0 if it does not.
+    * @return Returns 0 if the file exists, or error code if it does not.
 */
-int is_file_exists(const char* filename);
+enum ReturnCode check_file_exists(const char* filename);
 
 /**
     * Retrieves the size of a file in bytes.

@@ -18,5 +18,5 @@ int main(void) {
     signal(SIGINT, handle_sigint);
     server_start();
     server_stop();
-    return 0;
+    return RET_SUCCESS;
 }

@@ -33,11 +33,11 @@ struct Request parse_request(const char* raw_request) {
     char method[METHOD_STR_LEN];
     sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
     
-    if (strcmp(method, "GET") == 0) {
+    if (strcmp(method, "GET") == RET_SUCCESS) {
         request.method = GET;
-    } else if (strcmp(method, "POST") == 0) {
+    } else if (strcmp(method, "POST") == RET_SUCCESS) {
         request.method = POST;
-    } else if (strcmp(method, "DELETE") == 0) {
+    } else if (strcmp(method, "DELETE") == RET_SUCCESS) {
         request.method = DELETE;
     } else {
         request.method = UNKNOWN;
@@ -61,7 +61,7 @@ struct Request parse_request(const char* raw_request) {
                 request.body_size = extra_bytes;
             }
         } else {
-            strncpy(request.headers, raw_request, sizeof(request.headers)-1);
+            strncpy(request.headers, raw_request, sizeof(request.headers) - 1);
             request.headers[sizeof(request.headers) - 1] = '\0';
         }
     }
@@ -94,7 +94,7 @@ char* create_response(struct Request request) {
 }
 
 size_t parse_content_length(const char* headers) {
-    if (!headers) {
+    if (headers == NULL) {
         log_message(INFO, "No headers detected");
         return 0;
     }
@@ -106,7 +106,7 @@ size_t parse_content_length(const char* headers) {
             line_end = curr_line + strlen(curr_line);
         }
 
-        if (strncasecmp(curr_line, "Content-Length:", 15) == 0) {
+        if (strncasecmp(curr_line, "Content-Length:", 15) == RET_SUCCESS) {
             const char* val = curr_line + 15;
             while (*val == ' ' || *val == '\t') val++;
             log_message(INFO, "Found and parsed 'Content-Length' header");
@@ -125,7 +125,7 @@ size_t parse_content_length(const char* headers) {
 struct Response handle_method_get(struct Request request) {
     struct Response response;
 
-    if (!is_file_exists(request.path)) {
+    if (check_file_exists(request.path) != RET_SUCCESS) {
         log_message(WARN, "GET method: file not found");
         strcpy(response.status, STATUS_404_NOT_FOUND);
         strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
@@ -159,7 +159,7 @@ struct Response handle_method_post() {
 struct Response handle_method_delete(struct Request request) {
     struct Response response;
 
-    if (delete_file(request.path) == 0) {
+    if (delete_file(request.path) == RET_SUCCESS) {
         log_message(INFO, "DELETE method: file deleted");
         strcpy(response.status, STATUS_200_OK);
         strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 14");

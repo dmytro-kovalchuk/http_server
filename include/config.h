@@ -31,7 +31,7 @@ struct Config {
     *
     * @param[in] path The path to the configuration file.
     * 
-    * @return Returns 0 on success or -1 on failure.
+    * @return Returns 0 on success or error code on failure.
     *
     * This function reads, parses, and loads configuration values
     * into a global configuration structure used by the application.
@@ -39,7 +39,7 @@ struct Config {
     * @note If the configuration file is missing or invalid,
     * default values are applied.
 */
-int load_config(const char* path);
+enum ReturnCode load_config(const char* path);
 
 /**
     * Retrieves the const pointer to the const loaded configuration.

@@ -28,4 +28,14 @@
 #define MAX_PATH_LEN 256
 #define RESPONSE_EXTRA_BYTES 10
 
+// === Return codes ===
+enum ReturnCode {
+    RET_SUCCESS = 0,
+    RET_ERROR = -1,
+    RET_ARGUMENT_IS_NULL = -2,
+    RET_CONFIG_PARSING_ERROR = -3,
+    RET_FILE_NOT_OPENED = -4
+
+};
+
 #endif // COMMON_H

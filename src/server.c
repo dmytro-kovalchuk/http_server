@@ -62,13 +62,11 @@ static int send_method_post(int client_socket, struct Request request) {
         send_method_continue(client_socket);
     }
 
-    int result = receive_file(client_socket, request.path, content_size, request.body, request.body_size);
-
-    if (result != 0) {
+    if (receive_file(client_socket, request.path, content_size, request.body, request.body_size) != RET_SUCCESS) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
         log_message(ERROR, "Failed to receive file");
-        return -1;
+        return RET_ERROR;
     }
 
     char* raw_response = create_response(request);
@@ -76,7 +74,7 @@ static int send_method_post(int client_socket, struct Request request) {
     free(raw_response);
 
     log_message(INFO, "POST method response sent");
-    return 0;
+    return RET_SUCCESS;
 }
 
 static void send_method_get(int client_socket, struct Request request) {
@@ -84,7 +82,9 @@ static void send_method_get(int client_socket, struct Request request) {
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
     log_message(INFO, "GET method response sent");
-    send_file(client_socket, request.path);
+    if (send_file(client_socket, request.path) != RET_SUCCESS) {
+        log_message(ERROR, "Failed to send file");
+    }
 }
 
 static void send_method_delete(int client_socket, struct Request request) {
@@ -100,7 +100,7 @@ static void send_method_other(int client_socket) {
     log_message(WARN, "Other method response sent");
 }
 
-static int send_response(int client_socket, struct Request request) {
+static void send_response(int client_socket, struct Request request) {
     switch (request.method) {
         case GET: send_method_get(client_socket, request); break;
         case POST: send_method_post(client_socket, request); break;
@@ -108,13 +108,11 @@ static int send_response(int client_socket, struct Request request) {
         case UNKNOWN: 
         default: send_method_other(client_socket);
     }
-
-    return 0;
 }
 
 static void make_port_reusable(int server_fd) {
     int opt = 1;
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == RET_ERROR) {
         log_message(FATAL, "Couldn't make server reuse port");
         close(server_fd);
         exit(EXIT_FAILURE);
@@ -125,7 +123,7 @@ static void make_port_reusable(int server_fd) {
 static int create_file_descriptor() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
-    if (server_fd == -1) {
+    if (server_fd == RET_ERROR) {
         log_message(FATAL, "Couldn't create socket");
         exit(EXIT_FAILURE);
     }
@@ -148,7 +146,7 @@ static struct sockaddr_in create_server_addr() {
 }
 
 static void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
-    if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == -1) {
+    if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == RET_ERROR) {
         log_message(FATAL, "Couldn't bind server address to file descriptor");
         exit(EXIT_FAILURE);
     }
@@ -158,10 +156,10 @@ static void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
 static int set_client_timeout(int client_socket) {
     struct timeval timeout = {5, 0};
 
-    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == -1) {
+    if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == RET_ERROR) {
         log_message(ERROR, "Couldn't set timeout time for client");
         close(client_socket);
-        return -1;
+        return RET_ERROR;
     }
 
     log_message(INFO, "Successfully set timeout time for client");
@@ -170,7 +168,7 @@ static int set_client_timeout(int client_socket) {
 
 static void start_listening(int server_fd) {
     const struct Config* config = get_config();
-    if (listen(server_fd, config->max_clients) == -1) {
+    if (listen(server_fd, config->max_clients) == RET_ERROR) {
         log_message(FATAL, "Couldn't listen on socket");
         exit(EXIT_FAILURE);
     }
@@ -182,7 +180,7 @@ static int accept_connection(int server_fd) {
     socklen_t client_addr_len = sizeof(client_addr);
     int client_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 
-    if (client_socket == -1) {
+    if (client_socket == RET_ERROR) {
         log_message(ERROR, "Couldn't accept connection");
     }
 
@@ -263,8 +261,8 @@ static void handle_requests(int server_fd) {
 
     while (is_server_running) {
         int client_socket = accept_connection(server_fd);
-        if (client_socket == -1) break;
-        if (set_client_timeout(client_socket) == -1) break;
+        if (client_socket == RET_ERROR) break;
+        if (set_client_timeout(client_socket) == RET_ERROR) break;
 
         const struct Config* config = get_config();
         pthread_mutex_lock(&client_count_mutex);
@@ -281,7 +279,7 @@ static void handle_requests(int server_fd) {
         *client_socket_ptr = client_socket;
 
         pthread_t thread_id;
-        if (pthread_create(&thread_id, NULL, handle_client, client_socket_ptr) != 0) {
+        if (pthread_create(&thread_id, NULL, handle_client, client_socket_ptr) != RET_SUCCESS) {
             log_message(ERROR, "Couldn't create thread for new connection");
             close(client_socket);
             free(client_socket_ptr);
@@ -296,7 +294,7 @@ static void handle_requests(int server_fd) {
 }
 
 void server_start() {
-    if (load_config("../config.json") == 0) {
+    if (load_config("../config.json") != RET_SUCCESS) {
         log_message(WARN, "Failed to load config");
     } else {
         log_message(INFO, "Loaded config successfully");
