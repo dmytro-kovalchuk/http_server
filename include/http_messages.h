@@ -32,6 +32,7 @@ struct Request {
     char path[MAX_PATH_LEN];            /**< The requested path or resource URI. */
     char version[HTTP_VERSION_SIZE];    /**< The HTTP version (e.g., HTTP/1.1). */
     char headers[HTTP_HEADER_SIZE];     /**< The raw request headers. */
+    size_t content_len;                /**< Value of Content-Length header. */
     char* body;                         /**< Pointer to the request body (optional). */
     size_t body_size;                   /**< Size of the request body in bytes. */
 };

@@ -87,6 +87,8 @@ struct Request parse_request(const char* raw_request) {
         }
     }
 
+    request.content_len = parse_content_length(request.headers);
+
     LOG_INFO("Raw request parsed successfully");
     return request;
 }

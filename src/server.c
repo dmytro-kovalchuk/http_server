@@ -56,13 +56,11 @@ static void send_method_continue(int client_socket) {
 }
 
 static int send_method_post(int client_socket, struct Request request) {
-    size_t content_size = parse_content_length(request.headers);
-    
     if (strstr(request.headers, "Expect: 100-continue") != NULL) {
         send_method_continue(client_socket);
     }
 
-    if (receive_file(client_socket, request.path, content_size, request.body, request.body_size) != RET_SUCCESS) {
+    if (receive_file(client_socket, request.path, request.content_len, request.body, request.body_size) != RET_SUCCESS) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
         LOG_ERROR("Failed to receive file");
