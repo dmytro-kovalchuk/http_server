@@ -152,17 +152,15 @@ struct Response handle_method_get(struct Request request) {
     struct Response response = initialize_response();
 
     if (check_file_exists(request.path) != RET_SUCCESS) {
-        log_message(WARN, "GET method: file not found");
-        strcpy(response.status, STATUS_404_NOT_FOUND);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 10");
         response.body = strdup("Not Found");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        log_message(WARN, "GET method: file not found");
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
     } else {
         log_message(INFO, "GET method: file exists");
         strcpy(response.status, STATUS_200_OK);
-        char header[128];
-        snprintf(header, sizeof(header), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
-        strncpy(response.headers, header, sizeof(response.headers) - 1);
+        snprintf(response.headers, sizeof(response.headers), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
     }
 
     log_message(INFO, "GET method response created");
@@ -172,11 +170,12 @@ struct Response handle_method_get(struct Request request) {
 struct Response handle_method_post() {
     struct Response response = initialize_response();
 
-    log_message(INFO, "POST method: file created");
-    strcpy(response.status, STATUS_201_CREATED);
-    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 14");
     response.body = strdup("File created.\n");
     response.body_size = response.body != NULL ? strlen(response.body) : 0;
+
+    log_message(INFO, "POST method: file created");
+    strcpy(response.status, STATUS_201_CREATED);
+    snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
 
     log_message(INFO, "POST method response created");
     return response;
@@ -186,17 +185,17 @@ struct Response handle_method_delete(struct Request request) {
     struct Response response = initialize_response();
 
     if (delete_file(request.path) == RET_SUCCESS) {
-        log_message(INFO, "DELETE method: file deleted");
-        strcpy(response.status, STATUS_200_OK);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 14");
         response.body = strdup("File deleted.\n");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        log_message(INFO, "DELETE method: file deleted");
+        strcpy(response.status, STATUS_200_OK);
+        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
     } else {
         log_message(WARN, "DELETE method: file doesn't exists");
-        strcpy(response.status, STATUS_404_NOT_FOUND);
-        strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 9");
         response.body = strdup("Not Found");
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
     }
 
     log_message(INFO, "DELETE method response created");
@@ -206,10 +205,10 @@ struct Response handle_method_delete(struct Request request) {
 struct Response handle_method_other() {
     struct Response response = initialize_response();
 
-    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
-    strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 18");
     response.body = strdup("Method not allowed");
     response.body_size = response.body != NULL ? strlen(response.body) : 0;
+    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
+    snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
 
     log_message(WARN, "Other method response created");
     return response;
