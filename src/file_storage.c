@@ -20,6 +20,11 @@
 #include "../include/common.h"
 
 int send_file(int client_socket, const char* filename) {
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        return -1;
+    }
+
     char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
@@ -52,11 +57,16 @@ int send_file(int client_socket, const char* filename) {
 
 int receive_file(int client_socket, const char* filename, size_t file_size,
                  const void* received_body, size_t received_body_size) {
-    char path[MAX_PATH_LEN];
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        return -1;
+    }
+    
+                    char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
     FILE* file = fopen(path, "wb");
-    if (!file) {
+    if (file == NULL) {
         log_message(ERROR, "Couldn't create file");
         return -1;
     }
@@ -64,7 +74,10 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
     size_t remaining_bytes = file_size;
 
     if (received_body && received_body_size > 0) {
-        fwrite(received_body, 1, received_body_size, file);
+        if (fwrite(received_body, 1, received_body_size, file) != received_body_size) {
+            log_message(ERROR, "Couldn't write received body into file");
+            return -1;
+        }
         remaining_bytes -= received_body_size;
     }
 
@@ -79,7 +92,10 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
             return -1;
         }
 
-        fwrite(buffer, 1, (size_t)received_bytes, file);
+        if (fwrite(buffer, 1, (size_t)received_bytes, file) != (size_t)received_bytes) {
+            log_message(ERROR, "Couldn't write received data chunk into file");
+            return -1;
+        }
         remaining_bytes -= (size_t)received_bytes;
     }
 
@@ -89,12 +105,22 @@ int receive_file(int client_socket, const char* filename, size_t file_size,
 }
 
 int delete_file(const char* filename) {
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        return -1;
+    }
+
     char path[MAX_PATH_LEN];
     set_file_location(path, filename);
     return remove(path);
 }
 
 int is_file_exists(const char* filename) {
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        return 0;
+    }
+
     char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
@@ -108,6 +134,11 @@ int is_file_exists(const char* filename) {
 }
 
 size_t get_file_size(const char* filename) {
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        return 0;
+    }
+
     char path[MAX_PATH_LEN];
     set_file_location(path, filename);
 
@@ -119,6 +150,12 @@ size_t get_file_size(const char* filename) {
 }
 
 void set_file_location(char* output, const char* filename) {
+    if (filename == NULL) {
+        log_message(ERROR, "Filename is NULL");
+        output = NULL;
+        return;
+    }
+
     const struct Config* config = get_config();
     snprintf(output, MAX_PATH_LEN,  "%s%s", config->root_directory, filename);
 }
