@@ -25,10 +25,17 @@
 #include "../include/logger.h"
 #include "../include/common.h"
 
-struct Request parse_request(const char* raw_request) {
-    struct Request request = {0};
+static struct Request initialize_request() {
+    struct Request request;
+    memset(&request, 0, sizeof(request));
+    request.method = UNKNOWN;
     request.body = NULL;
     request.body_size = 0;
+    return request;
+}
+
+struct Request parse_request(const char* raw_request) {
+    struct Request request = initialize_request();
 
     if (raw_request == NULL) {
         log_message(INFO, "Raw request is NULL");
@@ -39,7 +46,6 @@ struct Request parse_request(const char* raw_request) {
     int parsed = sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
     if (parsed != 3) {
         log_message(ERROR, "Couldn't parse raw request");
-        request.method = UNKNOWN;
         return request;
     }
 
@@ -81,11 +87,16 @@ struct Request parse_request(const char* raw_request) {
     return request;
 }
 
-char* create_response(struct Request request) {
+static struct Response initialize_response() {
     struct Response response;
     memset(&response, 0, sizeof(response));
     response.body = NULL;
     response.body_size = 0;
+    return response;
+}
+
+char* create_response(struct Request request) {
+    struct Response response;
 
     switch (request.method) {
         case GET: response = handle_method_get(request); break;
@@ -134,7 +145,7 @@ size_t parse_content_length(const char* headers) {
 }
 
 struct Response handle_method_get(struct Request request) {
-    struct Response response;
+    struct Response response = initialize_response();
 
     if (check_file_exists(request.path) != RET_SUCCESS) {
         log_message(WARN, "GET method: file not found");
@@ -155,7 +166,7 @@ struct Response handle_method_get(struct Request request) {
 }
 
 struct Response handle_method_post() {
-    struct Response response;
+    struct Response response = initialize_response();
 
     log_message(INFO, "POST method: file created");
     strcpy(response.status, STATUS_201_CREATED);
@@ -168,7 +179,7 @@ struct Response handle_method_post() {
 }
 
 struct Response handle_method_delete(struct Request request) {
-    struct Response response;
+    struct Response response = initialize_response();
 
     if (delete_file(request.path) == RET_SUCCESS) {
         log_message(INFO, "DELETE method: file deleted");
@@ -189,7 +200,7 @@ struct Response handle_method_delete(struct Request request) {
 }
 
 struct Response handle_method_other() {
-    struct Response response;
+    struct Response response = initialize_response();
 
     strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
     strcpy(response.headers, "Content-Type: text/plain\r\nContent-Length: 18");
