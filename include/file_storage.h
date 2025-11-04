@@ -74,6 +74,6 @@ size_t get_file_size(const char* filename);
     * @param[out] output The buffer where the resolved file path is stored.
     * @param[in] filename The name of the file.
 */
-void set_file_location(char* output, const char* filename);
+enum ReturnCode set_file_location(char* output, const char* filename);
 
 #endif // FILE_STORAGE_H

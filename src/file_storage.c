@@ -26,7 +26,9 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
     }
 
     char path[MAX_PATH_LEN];
-    set_file_location(path, filename);
+    if (set_file_location(path, filename) != RET_SUCCESS) {
+        return RET_ERROR;
+    }
 
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
@@ -63,7 +65,9 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
     }
     
     char path[MAX_PATH_LEN];
-    set_file_location(path, filename);
+    if (set_file_location(path, filename) != RET_SUCCESS) {
+        return RET_ERROR;
+    }
 
     FILE* file = fopen(path, "wb");
     if (file == NULL) {
@@ -111,7 +115,10 @@ int delete_file(const char* filename) {
     }
 
     char path[MAX_PATH_LEN];
-    set_file_location(path, filename);
+    if (set_file_location(path, filename) != RET_SUCCESS) {
+        return RET_ERROR;
+    }
+
     return remove(path);
 }
 
@@ -122,7 +129,9 @@ enum ReturnCode check_file_exists(const char* filename) {
     }
 
     char path[MAX_PATH_LEN];
-    set_file_location(path, filename);
+    if (set_file_location(path, filename) != RET_SUCCESS) {
+        return RET_ERROR;
+    }
 
     FILE* file = fopen(path, "r");
     if (file != NULL) {
@@ -140,7 +149,9 @@ size_t get_file_size(const char* filename) {
     }
 
     char path[MAX_PATH_LEN];
-    set_file_location(path, filename);
+    if (set_file_location(path, filename) != RET_SUCCESS) {
+        return 0;
+    }
 
     FILE* file = fopen(path, "rb");
     fseek(file, 0, SEEK_END);
@@ -149,13 +160,25 @@ size_t get_file_size(const char* filename) {
     return size;
 }
 
-void set_file_location(char* output, const char* filename) {
+enum ReturnCode set_file_location(char* output, const char* filename) {
     if (filename == NULL) {
         log_message(ERROR, "Filename is NULL");
         output = NULL;
-        return;
+        return RET_ARGUMENT_IS_NULL;
     }
 
     const struct Config* config = get_config();
-    snprintf(output, MAX_PATH_LEN,  "%s%s", config->root_directory, filename);
+    int  written_bytes = snprintf(output, MAX_PATH_LEN,  "%s%s", config->root_directory, filename);
+
+    if (written_bytes < 0) {
+        log_message(ERROR, "Error creating file path in storage");
+        output = NULL;
+        return RET_ERROR;
+    } else if (written_bytes >= MAX_PATH_LEN) {
+        log_message(ERROR, "File path is bigger than buffer size");
+        output = NULL;
+        return RET_ERROR;
+    }
+
+    return RET_SUCCESS;
 }
