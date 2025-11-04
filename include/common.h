@@ -19,10 +19,11 @@
 #define METHOD_STR_LEN 16
 
 // === HTTP statuses ===
-#define STATUS_200_OK                   "HTTP/1.1 200 OK"
-#define STATUS_201_CREATED              "HTTP/1.1 201 Created"
-#define STATUS_404_NOT_FOUND            "HTTP/1.1 404 Not Found"
-#define STATUS_405_METHOD_NOT_ALLOWED   "HTTP/1.1 405 Method Not Allowed"
+#define STATUS_200_OK                       "HTTP/1.1 200 OK"
+#define STATUS_201_CREATED                  "HTTP/1.1 201 Created"
+#define STATUS_404_NOT_FOUND                "HTTP/1.1 404 Not Found"
+#define STATUS_405_METHOD_NOT_ALLOWED       "HTTP/1.1 405 Method Not Allowed"
+#define STATUS_500_INTERNAL_SERVER_ERROR    "HTTP/1.1 500 Internal Server Error"
 
 // === Other ===
 #define MAX_PATH_LEN 256

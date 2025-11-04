@@ -153,7 +153,16 @@ struct Response handle_method_get(struct Request request) {
 
     if (check_file_exists(request.path) != RET_SUCCESS) {
         response.body = strdup("Not Found");
-        response.body_size = response.body != NULL ? strlen(response.body) : 0;
+        if (response.body == NULL) {
+            log_message(ERROR, "Memory allocation failed while creating response body");
+            response.body = "";
+            response.body_size = 0;
+            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
+            snprintf(response.headers, sizeof(response.headers),
+                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+            return response;
+        }
+        response.body_size = strlen(response.body);
         log_message(WARN, "GET method: file not found");
         strcpy(response.status, STATUS_404_NOT_FOUND);
         snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
@@ -171,7 +180,16 @@ struct Response handle_method_post() {
     struct Response response = initialize_response();
 
     response.body = strdup("File created.\n");
-    response.body_size = response.body != NULL ? strlen(response.body) : 0;
+    if (response.body == NULL) {
+        log_message(ERROR, "Memory allocation failed while creating response body");
+        response.body = "";
+        response.body_size = 0;
+        strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
+        snprintf(response.headers, sizeof(response.headers),
+                "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+        return response;
+    }
+    response.body_size = strlen(response.body);
 
     log_message(INFO, "POST method: file created");
     strcpy(response.status, STATUS_201_CREATED);
@@ -186,6 +204,16 @@ struct Response handle_method_delete(struct Request request) {
 
     if (delete_file(request.path) == RET_SUCCESS) {
         response.body = strdup("File deleted.\n");
+        if (response.body == NULL) {
+            log_message(ERROR, "Memory allocation failed while creating response body");
+            response.body = "";
+            response.body_size = 0;
+            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
+            snprintf(response.headers, sizeof(response.headers),
+                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+            return response;
+        }
+        response.body_size = strlen(response.body);
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
         log_message(INFO, "DELETE method: file deleted");
         strcpy(response.status, STATUS_200_OK);
@@ -193,6 +221,16 @@ struct Response handle_method_delete(struct Request request) {
     } else {
         log_message(WARN, "DELETE method: file doesn't exists");
         response.body = strdup("Not Found");
+        if (response.body == NULL) {
+            log_message(ERROR, "Memory allocation failed while creating response body");
+            response.body = "";
+            response.body_size = 0;
+            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
+            snprintf(response.headers, sizeof(response.headers),
+                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+            return response;
+        }
+        response.body_size = strlen(response.body);
         response.body_size = response.body != NULL ? strlen(response.body) : 0;
         strcpy(response.status, STATUS_404_NOT_FOUND);
         snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
@@ -206,6 +244,16 @@ struct Response handle_method_other() {
     struct Response response = initialize_response();
 
     response.body = strdup("Method not allowed");
+    if (response.body == NULL) {
+        log_message(ERROR, "Memory allocation failed while creating response body");
+        response.body = "";
+        response.body_size = 0;
+        strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
+        snprintf(response.headers, sizeof(response.headers),
+                "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+        return response;
+    }
+    response.body_size = strlen(response.body);
     response.body_size = response.body != NULL ? strlen(response.body) : 0;
     strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
     snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
