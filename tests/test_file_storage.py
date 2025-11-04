@@ -23,8 +23,8 @@ def file_storage_lib():
     lib.delete_file.argtypes = [ctypes.c_char_p]
     lib.delete_file.restype = ctypes.c_int
 
-    lib.is_file_exists.argtypes = [ctypes.c_char_p]
-    lib.is_file_exists.restype = ctypes.c_int
+    lib.check_file_exists.argtypes = [ctypes.c_char_p]
+    lib.check_file_exists.restype = ctypes.c_int
 
     lib.get_file_size.argtypes = [ctypes.c_char_p]
     lib.get_file_size.restype = ctypes.c_size_t
@@ -88,7 +88,7 @@ def test_receive_file_success(file_storage_lib, socket_pair):
 def test_send_file_missing(file_storage_lib, socket_pair):
     server, client = socket_pair
     result = file_storage_lib.send_file(client.fileno(), b"fail")
-    assert result == -1
+    assert result == -4
 
 
 def test_send_file_closed_socket(file_storage_lib, socket_pair):
@@ -101,7 +101,7 @@ def test_send_file_closed_socket(file_storage_lib, socket_pair):
     client.close()
 
     result = file_storage_lib.send_file(client.fileno(), filename.encode())
-    assert result == -1
+    assert result == -4
 
     os.remove(filename)
     server.close()
@@ -135,12 +135,12 @@ def test_is_file_exists(file_storage_lib):
     with open(dir + filename, "w") as file:
         file.write("data")
 
-    assert file_storage_lib.is_file_exists(filename.encode()) == 1
+    assert file_storage_lib.check_file_exists(filename.encode()) == 0
     os.remove(dir + filename)
     
 
 def test_is_file_exists_missing(file_storage_lib):
-    assert file_storage_lib.is_file_exists("./storage/nonexist.txt".encode()) == 0
+    assert file_storage_lib.check_file_exists("./storage/nonexist.txt".encode()) != 0
 
 
 def test_get_file_size(file_storage_lib):
