@@ -16,19 +16,21 @@
 #include <time.h>
 #include <string.h>
 #include "../include/config.h"
+#include "../include/common.h"
+
+static FILE* log_file;
+
+enum ReturnCode initialize_logger() {
+    const struct Config* config = get_config();
+    log_file = fopen(config->log_file, "a");
+    if (log_file == NULL) {
+        return RET_ERROR;
+    }
+    return RET_SUCCESS;
+}
 
 void log_message(enum Level level, const char* message) {
-    if (message == NULL) {
-        return;
-    }
-
-    const struct Config* config = get_config();
-
-    FILE* log_file = fopen(config->log_file, "a");
-    if (log_file == NULL) {
-        perror("Failed to open log file");
-        return;
-    }
+    if (message == NULL) return;
 
     time_t curr_time;
     time(&curr_time);
@@ -46,6 +48,8 @@ void log_message(enum Level level, const char* message) {
     }
 
     fprintf(log_file, "[%s] [%s] %s\n", curr_time_str, level_str, message);
+}
 
+void deinitialize_logger() {
     fclose(log_file);
 }

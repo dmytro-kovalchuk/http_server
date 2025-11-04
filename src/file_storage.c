@@ -21,7 +21,7 @@
 
 enum ReturnCode send_file(int client_socket, const char* filename) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         return RET_ARGUMENT_IS_NULL;
     }
 
@@ -32,7 +32,7 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
 
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
-        log_message(ERROR, "Couldn't open file");
+        LOG_ERROR("Couldn't open file");
         return RET_FILE_NOT_OPENED;
     }
 
@@ -44,7 +44,7 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
         while (total_sent < bytes_read) {
             ssize_t bytes_sent = send(client_socket, buffer + total_sent, bytes_read - total_sent, 0);
             if (bytes_sent <= 0) {
-                log_message(ERROR, "Failed to send file");
+                LOG_ERROR("Failed to send file");
                 fclose(file);
                 return RET_ERROR;
             }
@@ -52,7 +52,7 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
         }
     }
 
-    log_message(INFO, "File was successfully sent");
+    LOG_INFO("File was successfully sent");
     fclose(file);
     return RET_SUCCESS;
 }
@@ -60,7 +60,7 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
 enum ReturnCode receive_file(int client_socket, const char* filename, size_t file_size,
                  const void* received_body, size_t received_body_size) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         return RET_ARGUMENT_IS_NULL;
     }
     
@@ -71,7 +71,7 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
 
     FILE* file = fopen(path, "wb");
     if (file == NULL) {
-        log_message(ERROR, "Couldn't create file");
+        LOG_ERROR("Couldn't create file");
         return RET_FILE_NOT_OPENED;
     }
 
@@ -79,7 +79,7 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
 
     if (received_body && received_body_size > 0) {
         if (fwrite(received_body, 1, received_body_size, file) != received_body_size) {
-            log_message(ERROR, "Couldn't write received body into file");
+            LOG_ERROR("Couldn't write received body into file");
             return RET_ERROR;
         }
         remaining_bytes -= received_body_size;
@@ -91,26 +91,26 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
 
         ssize_t received_bytes = recv(client_socket, buffer, data_chunk, 0);
         if (received_bytes <= 0) {
-            log_message(ERROR, "Failed during receiving data chunk");
+            LOG_ERROR("Failed during receiving data chunk");
             fclose(file);
             return RET_ERROR;
         }
 
         if (fwrite(buffer, 1, (size_t)received_bytes, file) != (size_t)received_bytes) {
-            log_message(ERROR, "Couldn't write received data chunk into file");
+            LOG_ERROR("Couldn't write received data chunk into file");
             return RET_ERROR;
         }
         remaining_bytes -= (size_t)received_bytes;
     }
 
-    log_message(INFO, "File was successfully received");
+    LOG_INFO("File was successfully received");
     fclose(file);
     return RET_SUCCESS;
 }
 
 int delete_file(const char* filename) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         return RET_ARGUMENT_IS_NULL;
     }
 
@@ -124,7 +124,7 @@ int delete_file(const char* filename) {
 
 enum ReturnCode check_file_exists(const char* filename) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         return RET_ARGUMENT_IS_NULL;
     }
 
@@ -144,7 +144,7 @@ enum ReturnCode check_file_exists(const char* filename) {
 
 size_t get_file_size(const char* filename) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         return 0;
     }
 
@@ -162,7 +162,7 @@ size_t get_file_size(const char* filename) {
 
 enum ReturnCode set_file_location(char* output, const char* filename) {
     if (filename == NULL) {
-        log_message(ERROR, "Filename is NULL");
+        LOG_ERROR("Filename is NULL");
         output = NULL;
         return RET_ARGUMENT_IS_NULL;
     }
@@ -171,11 +171,11 @@ enum ReturnCode set_file_location(char* output, const char* filename) {
     int  written_bytes = snprintf(output, MAX_PATH_LEN,  "%s%s", config->root_directory, filename);
 
     if (written_bytes < 0) {
-        log_message(ERROR, "Error creating file path in storage");
+        LOG_ERROR("Error creating file path in storage");
         output = NULL;
         return RET_ERROR;
     } else if (written_bytes >= MAX_PATH_LEN) {
-        log_message(ERROR, "File path is bigger than buffer size");
+        LOG_ERROR("File path is bigger than buffer size");
         output = NULL;
         return RET_ERROR;
     }

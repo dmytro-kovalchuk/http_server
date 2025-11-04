@@ -44,14 +44,14 @@ static void send_method_continue(int client_socket) {
     ssize_t bytes_sent = send(client_socket, continue_response, response_len, 0);
 
     if (bytes_sent < 0) {
-        log_message(ERROR, "Failed to send 100 Continue response");
+        LOG_ERROR("Failed to send 100 Continue response");
         return;
     }
 
     if ((size_t)bytes_sent < response_len) {
-        log_message(WARN, "Partial send of 100 Continue");
+        LOG_WARN("Partial send of 100 Continue");
     } else {
-        log_message(INFO, "100 Continue response sent successfully");
+        LOG_INFO("100 Continue response sent successfully");
     }
 }
 
@@ -65,7 +65,7 @@ static int send_method_post(int client_socket, struct Request request) {
     if (receive_file(client_socket, request.path, content_size, request.body, request.body_size) != RET_SUCCESS) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
-        log_message(ERROR, "Failed to receive file");
+        LOG_ERROR("Failed to receive file");
         return RET_ERROR;
     }
 
@@ -73,7 +73,7 @@ static int send_method_post(int client_socket, struct Request request) {
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
 
-    log_message(INFO, "POST method response sent");
+    LOG_INFO("POST method response sent");
     return RET_SUCCESS;
 }
 
@@ -81,9 +81,9 @@ static void send_method_get(int client_socket, struct Request request) {
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
-    log_message(INFO, "GET method response sent");
+    LOG_INFO("GET method response sent");
     if (send_file(client_socket, request.path) != RET_SUCCESS) {
-        log_message(ERROR, "Failed to send file");
+        LOG_ERROR("Failed to send file");
     }
 }
 
@@ -91,13 +91,13 @@ static void send_method_delete(int client_socket, struct Request request) {
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
-    log_message(INFO, "DELETE method response sent");
+    LOG_INFO("DELETE method response sent");
 }
 
 static void send_method_other(int client_socket) {
     const char* raw_response = "HTTP/1.1 405 Method Not Allowed\r\nContent-Length: 0\r\n\r\n";
     send(client_socket, raw_response, strlen(raw_response), 0);
-    log_message(WARN, "Other method response sent");
+    LOG_WARN("Other method response sent");
 }
 
 static void send_response(int client_socket, struct Request request) {
@@ -113,24 +113,24 @@ static void send_response(int client_socket, struct Request request) {
 static void make_port_reusable(int server_fd) {
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == RET_ERROR) {
-        log_message(FATAL, "Couldn't make server reuse port");
+        LOG_FATAL("Couldn't make server reuse port");
         close(server_fd);
         exit(EXIT_FAILURE);
     }
-    log_message(INFO, "Made possible for server to reuse port");
+    LOG_INFO("Made possible for server to reuse port");
 }
 
 static int create_file_descriptor() {
     int server_fd = socket(AF_INET, SOCK_STREAM, 0);
 
     if (server_fd == RET_ERROR) {
-        log_message(FATAL, "Couldn't create socket");
+        LOG_FATAL("Couldn't create socket");
         exit(EXIT_FAILURE);
     }
 
     make_port_reusable(server_fd);
     
-    log_message(INFO, "Server file descriptor(socket) created successfully");
+    LOG_INFO("Server file descriptor(socket) created successfully");
     return server_fd;
 }
 
@@ -141,38 +141,38 @@ static struct sockaddr_in create_server_addr() {
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(config->port);
     server_addr.sin_addr.s_addr = htonl(config->ip);
-    log_message(INFO, "Created server address struct");
+    LOG_INFO("Created server address struct");
     return server_addr;
 }
 
 static void bind_addr_to_socket(int server_fd, struct sockaddr_in server_addr) {
     if (bind(server_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) == RET_ERROR) {
-        log_message(FATAL, "Couldn't bind server address to file descriptor");
+        LOG_FATAL("Couldn't bind server address to file descriptor");
         exit(EXIT_FAILURE);
     }
-    log_message(INFO, "Bound server address to file descriptor");
+    LOG_INFO("Bound server address to file descriptor");
 }
 
 static int set_client_timeout(int client_socket) {
     struct timeval timeout = {5, 0};
 
     if (setsockopt(client_socket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout)) == RET_ERROR) {
-        log_message(ERROR, "Couldn't set timeout time for client");
+        LOG_ERROR("Couldn't set timeout time for client");
         close(client_socket);
         return RET_ERROR;
     }
 
-    log_message(INFO, "Successfully set timeout time for client");
+    LOG_INFO("Successfully set timeout time for client");
     return 0;
 }
 
 static void start_listening(int server_fd) {
     const struct Config* config = get_config();
     if (listen(server_fd, config->max_clients) == RET_ERROR) {
-        log_message(FATAL, "Couldn't listen on socket");
+        LOG_FATAL("Couldn't listen on socket");
         exit(EXIT_FAILURE);
     }
-    log_message(INFO, "Start listening on socket");
+    LOG_INFO("Start listening on socket");
 }
 
 static int accept_connection(int server_fd) {
@@ -181,10 +181,10 @@ static int accept_connection(int server_fd) {
     int client_socket = accept(server_fd, (struct sockaddr*)&client_addr, &client_addr_len);
 
     if (client_socket == RET_ERROR) {
-        log_message(ERROR, "Couldn't accept connection");
+        LOG_ERROR("Couldn't accept connection");
     }
 
-    log_message(INFO, "Connection successfully accepted");
+    LOG_INFO("Connection successfully accepted");
     return client_socket;
 }
 
@@ -192,7 +192,7 @@ static char* receive_request(int client_socket) {
     size_t buffer_size = BUFSIZ;
     char* buffer = malloc(buffer_size + 1);
     if (buffer == NULL) {
-        log_message(ERROR, "Memory not allocated for raw request buffer");
+        LOG_ERROR("Memory not allocated for raw request buffer");
         return NULL;
     }
 
@@ -201,7 +201,7 @@ static char* receive_request(int client_socket) {
     while (1) {
         received_bytes = recv(client_socket, buffer + total_received_bytes, buffer_size - total_received_bytes, 0);
         if (received_bytes <= 0) {
-            log_message(ERROR, "Client disconnected or recv() error while reading headers");
+            LOG_ERROR("Client disconnected or recv() error while reading headers");
             free(buffer);
             return NULL;
         }
@@ -213,13 +213,13 @@ static char* receive_request(int client_socket) {
         if (header_end != NULL) break;
 
         if (total_received_bytes >= buffer_size) {
-            log_message(ERROR, "Received bytes exceed buffer size while reading headers");
+            LOG_ERROR("Received bytes exceed buffer size while reading headers");
             free(buffer);
             return NULL;
         }
     }
 
-    log_message(INFO, "Received HTTP headers");
+    LOG_INFO("Received HTTP headers");
     return buffer;
 }
 
@@ -230,7 +230,7 @@ static void* handle_client(void* arg) {
     while (1) {
         char* raw_request = receive_request(client_socket);
         if (raw_request == NULL) {
-            log_message(WARN, "Client closed connection or invalid request");
+            LOG_WARN("Client closed connection or invalid request");
             break;
         }
 
@@ -239,15 +239,15 @@ static void* handle_client(void* arg) {
         free(raw_request);
 
         if (!is_keep_alive(request.headers)) {
-            log_message(INFO, "Connection: close - closing client socket");
+            LOG_INFO("Connection: close - closing client socket");
             break;
         }
 
-        log_message(INFO, "Keep-Alive: waiting for next request on same connection");
+        LOG_INFO("Keep-Alive: waiting for next request on same connection");
     }
 
     close(client_socket);
-    log_message(INFO, "Client socket closed");
+    LOG_INFO("Client socket closed");
 
     pthread_mutex_lock(&client_count_mutex);
     active_clients--;
@@ -268,7 +268,7 @@ static void handle_requests(int server_fd) {
         pthread_mutex_lock(&client_count_mutex);
         if (active_clients > config->max_clients) {
             pthread_mutex_unlock(&client_count_mutex);
-            log_message(WARN, "Reached max clients count, connection rejected");
+            LOG_WARN("Reached max clients count, connection rejected");
             close(client_socket);
             continue;
         }
@@ -280,7 +280,7 @@ static void handle_requests(int server_fd) {
 
         pthread_t thread_id;
         if (pthread_create(&thread_id, NULL, handle_client, client_socket_ptr) != RET_SUCCESS) {
-            log_message(ERROR, "Couldn't create thread for new connection");
+            LOG_ERROR("Couldn't create thread for new connection");
             close(client_socket);
             free(client_socket_ptr);
 
@@ -295,22 +295,23 @@ static void handle_requests(int server_fd) {
 
 void server_start() {
     if (load_config("../config.json") != RET_SUCCESS) {
-        log_message(WARN, "Failed to load config");
-    } else {
-        log_message(INFO, "Loaded config successfully");
+        puts("Failed to load config");
     }
+
+    if (initialize_logger() != RET_SUCCESS) return;
 
     g_server_fd = create_file_descriptor();
     struct sockaddr_in server_addr = create_server_addr();
     bind_addr_to_socket(g_server_fd, server_addr);
     
     puts("Server is started. Press Ctrl+C to stop it...");
-    log_message(INFO, "Server is started");
+    LOG_INFO("Server is started");
     handle_requests(g_server_fd);
 }
 
 void server_stop() {
     close(g_server_fd);
     g_server_fd = -1;
-    log_message(INFO, "Server is stopped!");
+    deinitialize_logger();
+    LOG_INFO("Server is stopped!");
 }
