@@ -30,9 +30,19 @@ struct Request parse_request(const char* raw_request) {
     request.body = NULL;
     request.body_size = 0;
 
+    if (raw_request == NULL) {
+        log_message(INFO, "Raw request is NULL");
+        return request;
+    }
+
     char method[METHOD_STR_LEN];
-    sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
-    
+    int parsed = sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
+    if (parsed != 3) {
+        log_message(ERROR, "Couldn't parse raw request");
+        request.method = UNKNOWN;
+        return request;
+    }
+
     if (strcmp(method, "GET") == RET_SUCCESS) {
         request.method = GET;
     } else if (strcmp(method, "POST") == RET_SUCCESS) {
@@ -55,9 +65,10 @@ struct Request parse_request(const char* raw_request) {
         const char* after_header = header_end + 4;
         size_t extra_bytes = strlen(after_header);
         if (extra_bytes > 0) {
-            request.body = malloc(extra_bytes);
+            request.body = malloc(extra_bytes + 1);
             if (request.body != NULL) {
                 memcpy(request.body, after_header, extra_bytes);
+                request.body[extra_bytes] = '\0';
                 request.body_size = extra_bytes;
             }
         } else {
