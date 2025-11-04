@@ -25,6 +25,10 @@
 #include "../include/logger.h"
 #include "../include/common.h"
 
+#define METHOD_GET "GET"
+#define METHOD_POST "POST"
+#define METHOD_DELETE "DELETE"
+
 static struct Request initialize_request() {
     struct Request request;
     memset(&request, 0, sizeof(request));
@@ -49,11 +53,11 @@ struct Request parse_request(const char* raw_request) {
         return request;
     }
 
-    if (strcmp(method, "GET") == RET_SUCCESS) {
+    if (strcmp(method, METHOD_GET) == RET_SUCCESS) {
         request.method = GET;
-    } else if (strcmp(method, "POST") == RET_SUCCESS) {
+    } else if (strcmp(method, METHOD_POST) == RET_SUCCESS) {
         request.method = POST;
-    } else if (strcmp(method, "DELETE") == RET_SUCCESS) {
+    } else if (strcmp(method, METHOD_DELETE) == RET_SUCCESS) {
         request.method = DELETE;
     } else {
         request.method = UNKNOWN;
