@@ -40,8 +40,19 @@ pthread_mutex_t client_count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void send_method_continue(int client_socket) {
     const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
-    send(client_socket, continue_response, strlen(continue_response), 0);
-    log_message(INFO, "CONTINUE method response sent");
+    size_t response_len = strlen(continue_response);
+    ssize_t bytes_sent = send(client_socket, continue_response, response_len, 0);
+
+    if (bytes_sent < 0) {
+        log_message(ERROR, "Failed to send 100 Continue response");
+        return;
+    }
+
+    if ((size_t)bytes_sent < response_len) {
+        log_message(WARN, "Partial send of 100 Continue");
+    } else {
+        log_message(INFO, "100 Continue response sent successfully");
+    }
 }
 
 static int send_method_post(int client_socket, struct Request request) {
