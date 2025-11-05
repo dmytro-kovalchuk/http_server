@@ -35,6 +35,7 @@ static struct Request initialize_request() {
     request.method = UNKNOWN;
     request.body = NULL;
     request.body_size = 0;
+    request.has_expect_continue_header = 0;
     return request;
 }
 
@@ -88,6 +89,10 @@ struct Request parse_request(const char* raw_request) {
     }
 
     request.content_len = parse_content_length(request.headers);
+
+    if (strstr(request.headers, "Expect: 100-continue") != NULL) {
+        request.has_expect_continue_header = 1;
+    }
 
     LOG_INFO("Raw request parsed successfully");
     return request;

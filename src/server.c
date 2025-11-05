@@ -56,7 +56,7 @@ static void send_method_continue(int client_socket) {
 }
 
 static int send_method_post(int client_socket, struct Request request) {
-    if (strstr(request.headers, "Expect: 100-continue") != NULL) {
+    if (request.has_expect_continue_header) {
         send_method_continue(client_socket);
     }
 
