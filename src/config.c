@@ -129,6 +129,7 @@ static char* read_config(const char* path) {
     }
 
     config_str[size] = '\0';
+    fclose(file);
     return config_str;
 }
 

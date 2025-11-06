@@ -315,6 +315,6 @@ void server_start() {
 void server_stop() {
     close(g_server_fd);
     g_server_fd = -1;
-    deinitialize_logger();
     LOG_INFO("Server is stopped!");
+    deinitialize_logger();
 }
