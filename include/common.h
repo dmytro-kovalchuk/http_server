@@ -3,7 +3,7 @@
 
 // === HTTP Request and Response structs ===
 #define HTTP_VERSION_SIZE 32
-#define HTTP_HEADER_SIZE 8192
+#define HTTP_HEADER_FIELD_SIZE 256
 #define HTTP_STATUS_SIZE 64
 
 // === Config ===

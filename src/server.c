@@ -27,6 +27,7 @@
 #include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include "../include/http_header.h"
 #include "../include/utils.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
@@ -56,11 +57,14 @@ static void send_method_continue(int client_socket) {
 }
 
 static int send_method_post(int client_socket, struct Request request) {
-    if (request.has_expect_continue_header) {
+    const char* expect_header = get_header_value(&request.headers, "Expect");
+    if (expect_header && strcmp(expect_header, "100-continue") == 0) {
         send_method_continue(client_socket);
     }
 
-    if (receive_file(client_socket, request.path, request.content_len, request.body, request.body_size) != RET_SUCCESS) {
+    const char* content_len_str = get_header_value(&request.headers, "Content-Length");
+    size_t content_len = content_len_str ? atoi(content_len_str) : 0;
+    if (receive_file(client_socket, request.path, content_len, request.body, request.body_size) != RET_SUCCESS) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
         LOG_ERROR("Failed to receive file");
@@ -242,6 +246,7 @@ static void* handle_client(void* arg) {
         }
 
         LOG_INFO("Keep-Alive: waiting for next request on same connection");
+        free_request(&request);
     }
 
     close(client_socket);
@@ -292,7 +297,7 @@ static void handle_requests(int server_fd) {
 }
 
 void server_start() {
-    if (load_config("../config.json") != RET_SUCCESS) {
+    if (load_config("config.json") != RET_SUCCESS) {
         puts("Failed to load config");
     }
 

@@ -24,30 +24,46 @@ enum Method {
 };
 
 /**
+    * @struct Header
+    * @brief Represents HTTP header in packet.
+*/
+struct Header {
+    char* key;
+    char* value;
+};
+
+/**
+    * @struct HeaderList
+    * @brief Represents list of HTTP headers.
+*/
+struct HeaderList {
+    struct Header* items;
+    size_t size;
+};
+
+/**
     * @struct Request
-    * @brief Represents an HTTP request received from a client.
+    * @brief Represents HTTP request received from a client.
 */
 struct Request {
     enum Method method;                 /**< The HTTP method (e.g., GET, POST, DELETE). */
     char path[MAX_PATH_LEN];            /**< The requested path or resource URI. */
     char version[HTTP_VERSION_SIZE];    /**< The HTTP version (e.g., HTTP/1.1). */
-    char headers[HTTP_HEADER_SIZE];     /**< The raw request headers. */
-    size_t content_len;                 /**< Value of Content-Length header. */
-    int has_expect_continue_header;     /**< Bool value to check existence of 'Expect: 100-Continue' field. */
+    struct HeaderList headers;          /**< Parsed headers as key-value pairs. */
     char* body;                         /**< Pointer to the request body (optional). */
     size_t body_size;                   /**< Size of the request body in bytes. */
 };
 
 /**
     * @struct Response
-    * @brief Represents an HTTP response sent to a client.
+    * @brief Represents  HTTP response sent to a client.
     *
     * This structure contains the response status line, headers,
     * and optional body content returned to the client.
 */
 struct Response {
     char status[HTTP_STATUS_SIZE];      /**< The HTTP status line (e.g., 200 OK). */
-    char headers[HTTP_HEADER_SIZE];     /**< The HTTP response headers. */
+    struct HeaderList headers;          /**< Parsed headers as key-value pairs. */
     char* body;                         /**< Pointer to the response body (optional). */
     size_t body_size;                   /**< Size of the response body in bytes. */
 };

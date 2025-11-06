@@ -38,15 +38,6 @@ struct Request parse_request(const char* raw_request);
 char* create_response(struct Request request);
 
 /**
-    * Extracts the Content-Length value from HTTP headers.
-    *
-    * @param[in] headers The raw HTTP headers string.
-    *
-    * @return Returns the content length value in bytes, or 0 if not found.
-*/
-size_t parse_content_length(const char* headers);
-
-/**
     * Handles an HTTP GET request.
     *
     * @param[in] request The parsed Request structure.
@@ -93,11 +84,18 @@ char* convert_struct_to_string(struct Response response);
 /**
     * Determines whether the HTTP connection should remain open.
     *
-    * @param[in] headers The raw HTTP headers string.
+    * @param[in] headers The HTTP headers list.
     *
     * @return Returns 1 if the connection should be kept alive,
     * or 0 if it should be closed.
 */
-int is_keep_alive(const char* headers);
+int is_keep_alive(const struct HeaderList headers);
+
+/**
+    * Deallocates memory of request and headers list.
+    *
+    * @param[in] request The Request structure.
+*/
+void free_request(struct Request* request);
 
 #endif // HTTP_COMMUNICATION_H

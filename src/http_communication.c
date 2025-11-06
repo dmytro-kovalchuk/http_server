@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "../include/http_header.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
 #include "../include/common.h"
@@ -35,8 +36,37 @@ static struct Request initialize_request() {
     request.method = UNKNOWN;
     request.body = NULL;
     request.body_size = 0;
-    request.has_expect_continue_header = 0;
     return request;
+}
+
+static struct HeaderList parse_headers(const char* raw_headers) {
+    struct HeaderList list = {NULL, 0};
+    if (raw_headers == NULL) return list;
+
+    const char* line_start = raw_headers;
+    const char* line_end;
+
+    while ((line_end = strstr(line_start, "\r\n")) != NULL) {
+        if (line_end == line_start) break;
+
+        const char* colon = strchr(line_start, ':');
+        if (colon && colon < line_end) {
+            size_t key_len = colon - line_start;
+            size_t value_len = line_end - (colon + 1);
+            while (value_len > 0 && ((colon[1 + value_len - 1] == ' ') || (colon[1 + value_len - 1] == '\t'))) {
+                value_len--;
+            }
+
+            list.items = realloc(list.items, sizeof(struct Header) * (list.size + 1));
+            list.items[list.size].key = strndup(line_start, key_len);
+            list.items[list.size].value = strndup(colon + 1, value_len);
+            list.size++;
+        }
+
+        line_start = line_end + 2;
+    }
+
+    return list;
 }
 
 struct Request parse_request(const char* raw_request) {
@@ -67,31 +97,15 @@ struct Request parse_request(const char* raw_request) {
     const char* header_end = strstr(raw_request, "\r\n\r\n");
     if (header_end != NULL) {
         size_t header_size = header_end - raw_request;
-        if (header_size >= sizeof(request.headers)) {
-            header_size = sizeof(request.headers) - 1;
-        }
-        memcpy(request.headers, raw_request, header_size);
-        request.headers[header_size] = '\0';
+        char* header_buf = strndup(raw_request, header_size);
+        request.headers = parse_headers(header_buf);
+        free(header_buf);
 
         const char* after_header = header_end + 4;
-        size_t extra_bytes = strlen(after_header);
-        if (extra_bytes > 0) {
-            request.body = malloc(extra_bytes + 1);
-            if (request.body != NULL) {
-                memcpy(request.body, after_header, extra_bytes);
-                request.body[extra_bytes] = '\0';
-                request.body_size = extra_bytes;
-            }
-        } else {
-            strncpy(request.headers, raw_request, sizeof(request.headers) - 1);
-            request.headers[sizeof(request.headers) - 1] = '\0';
+        if (*after_header) {
+            request.body_size = strlen(after_header);
+            request.body = strndup(after_header, request.body_size);
         }
-    }
-
-    request.content_len = parse_content_length(request.headers);
-
-    if (strstr(request.headers, "Expect: 100-continue") != NULL) {
-        request.has_expect_continue_header = 1;
     }
 
     LOG_INFO("Raw request parsed successfully");
@@ -118,91 +132,45 @@ char* create_response(struct Request request) {
     }
 
     if (is_keep_alive(request.headers)) {
-        strcat(response.headers, "\r\nConnection: keep-alive\r\nKeep-Alive: timeout=5, max=100");
+        add_header(&response.headers, "Connection", "keep-alive");
+        add_header(&response.headers, "Keep-Alive", "timeout=5, max=100");
     } else {
-        strcat(response.headers, "\r\nConnection: close");
+        add_header(&response.headers, "Connection", "close");
     }
 
     return convert_struct_to_string(response);
-}
-
-size_t parse_content_length(const char* headers) {
-    if (headers == NULL) {
-        LOG_WARN("No headers detected");
-        return 0;
-    }
-
-    const char* curr_line = headers;
-    while (curr_line != NULL && *curr_line != '\0') {
-        const char* line_end = strstr(curr_line, "\r\n");
-        if (line_end == NULL) {
-            line_end = curr_line + strlen(curr_line);
-        }
-
-        if (strncasecmp(curr_line, "Content-Length:", 15) == RET_SUCCESS) {
-            const char* val = curr_line + 15;
-            while (*val == ' ' || *val == '\t') val++;
-            LOG_INFO("Found and parsed 'Content-Length' header");
-            return (size_t)strtoul(val, NULL, 10);
-        }
-
-        if (*line_end == '\0') break;
-
-        curr_line = line_end + 2;
-    }
-
-    LOG_INFO("No 'Content-Length' header detected");
-    return 0;
 }
 
 struct Response handle_method_get(struct Request request) {
     struct Response response = initialize_response();
 
     if (check_file_exists(request.path) != RET_SUCCESS) {
-        response.body = strdup("Not Found");
-        if (response.body == NULL) {
-            LOG_ERROR("Memory allocation failed while creating response body");
-            response.body = "";
-            response.body_size = 0;
-            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
-            snprintf(response.headers, sizeof(response.headers),
-                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-            return response;
-        }
-        response.body_size = strlen(response.body);
-        LOG_WARN("GET method: file not found");
+        LOG_WARN("GET: file not found");
         strcpy(response.status, STATUS_404_NOT_FOUND);
-        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-    } else {
-        LOG_INFO("GET method: file exists");
-        strcpy(response.status, STATUS_200_OK);
-        snprintf(response.headers, sizeof(response.headers), "Content-Type: application/octet-stream\r\nContent-Length: %zu", get_file_size(request.path));
+        response.body = strdup("Not Found");
+        response.body_size = strlen(response.body);
+        add_header(&response.headers, "Content-Type", "text/plain");
+        add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+        return response;
     }
 
-    LOG_INFO("GET method response created");
+    LOG_INFO("GET: file found");
+    strcpy(response.status, STATUS_200_OK);
+    add_header(&response.headers, "Content-Type", "application/octet-stream");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request.path));
     return response;
 }
 
 struct Response handle_method_post() {
     struct Response response = initialize_response();
 
-    response.body = strdup("File created.\n");
-    if (response.body == NULL) {
-        LOG_ERROR("Memory allocation failed while creating response body");
-        response.body = "";
-        response.body_size = 0;
-        strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
-        snprintf(response.headers, sizeof(response.headers),
-                "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-        return response;
-    }
-    response.body_size = strlen(response.body);
-
-    LOG_INFO("POST method: file created");
     strcpy(response.status, STATUS_201_CREATED);
-    snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+    response.body = strdup("File created.\n");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
 
-    LOG_INFO("POST method response created");
+    LOG_INFO("POST: file created response");
     return response;
 }
 
@@ -210,38 +178,16 @@ struct Response handle_method_delete(struct Request request) {
     struct Response response = initialize_response();
 
     if (delete_file(request.path) == RET_SUCCESS) {
-        response.body = strdup("File deleted.\n");
-        if (response.body == NULL) {
-            LOG_ERROR("Memory allocation failed while creating response body");
-            response.body = "";
-            response.body_size = 0;
-            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
-            snprintf(response.headers, sizeof(response.headers),
-                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-            return response;
-        }
-        response.body_size = strlen(response.body);
-        response.body_size = response.body != NULL ? strlen(response.body) : 0;
-        LOG_INFO("DELETE method: file deleted");
         strcpy(response.status, STATUS_200_OK);
-        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+        response.body = strdup("File deleted.\n");
     } else {
-        LOG_WARN("DELETE method: file doesn't exists");
-        response.body = strdup("Not Found");
-        if (response.body == NULL) {
-            LOG_ERROR("Memory allocation failed while creating response body");
-            response.body = "";
-            response.body_size = 0;
-            strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
-            snprintf(response.headers, sizeof(response.headers),
-                    "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-            return response;
-        }
-        response.body_size = strlen(response.body);
-        response.body_size = response.body != NULL ? strlen(response.body) : 0;
         strcpy(response.status, STATUS_404_NOT_FOUND);
-        snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+        response.body = strdup("Not Found");
     }
+
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
 
     LOG_INFO("DELETE method response created");
     return response;
@@ -250,48 +196,56 @@ struct Response handle_method_delete(struct Request request) {
 struct Response handle_method_other() {
     struct Response response = initialize_response();
 
-    response.body = strdup("Method not allowed");
-    if (response.body == NULL) {
-        LOG_ERROR("Memory allocation failed while creating response body");
-        response.body = "";
-        response.body_size = 0;
-        strcpy(response.status, STATUS_500_INTERNAL_SERVER_ERROR);
-        snprintf(response.headers, sizeof(response.headers),
-                "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
-        return response;
-    }
-    response.body_size = strlen(response.body);
-    response.body_size = response.body != NULL ? strlen(response.body) : 0;
     strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
-    snprintf(response.headers, sizeof(response.headers), "Content-Type: text/plain\r\nContent-Length: %zu", response.body_size);
+    response.body = strdup("Method not allowed");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
 
-    LOG_WARN("Other method response created");
+    LOG_WARN("Other/unsupported method handled");
     return response;
 }
 
 char* convert_struct_to_string(struct Response response) {
-    size_t total_size = HTTP_STATUS_SIZE + HTTP_HEADER_SIZE + response.body_size + RESPONSE_EXTRA_BYTES;
-    char* response_str = malloc(total_size);
+    size_t total_estimated = HTTP_VERSION_SIZE + response.body_size + RESPONSE_EXTRA_BYTES;
+    for (size_t i = 0; i < response.headers.size; ++i) {
+        total_estimated += strlen(response.headers.items[i].key) + strlen(response.headers.items[i].value) + 4;
+    }
+
+    char* response_str = malloc(total_estimated);
     if (response_str == NULL) {
-        LOG_ERROR("Memory for response string not allocated");
-        if (response.body) free(response.body);
+        LOG_ERROR("Failed to allocate response response_str");
         return NULL;
     }
 
-    int bytes_written = snprintf(response_str, total_size, "%s\r\n%s\r\n\r\n", response.status, response.headers);
-    if (response.body && response.body_size > 0) {
-        memcpy(response_str + bytes_written, response.body, response.body_size);
-        response_str[bytes_written + response.body_size] = '\0';
-    } else {
-        response_str[bytes_written] = '\0';
+    size_t offset = snprintf(response_str, total_estimated, "%s\r\n", response.status);
+    for (size_t i = 0; i < response.headers.size; ++i) {
+        offset += snprintf(response_str + offset, total_estimated - offset,
+                           "%s: %s\r\n",
+                           response.headers.items[i].key,
+                           response.headers.items[i].value);
     }
+    offset += snprintf(response_str + offset, total_estimated - offset, "\r\n");
 
-    if (response.body) free(response.body);
+    if (response.body && response.body_size > 0) {
+        memcpy(response_str + offset, response.body, response.body_size);
+        offset += response.body_size;
+    }
+    response_str[offset] = '\0';
 
-    LOG_INFO("Response struct successfully converted to string");
+    free(response.body);
+    free_headers(&response.headers);
     return response_str;
 }
 
-int is_keep_alive(const char* headers) {  
-    return strstr(headers, "Connection: keep-alive") != NULL;
+int is_keep_alive(const struct HeaderList headers) {
+    const char* connection_header = get_header_value(&headers, "Connection");
+    return connection_header != NULL && strcasecmp(connection_header, "keep-alive") == 0;
+}
+
+void free_request(struct Request* request) {
+    if (request == NULL) return;
+    free_headers(&request->headers);
+    free(request->body);
+    request->body = NULL;
 }
