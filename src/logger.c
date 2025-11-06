@@ -1,4 +1,4 @@
-    /**
+/**
     * @file: logger.c
     * @author: Dmytro Kovalchuk
     *
@@ -15,10 +15,12 @@
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
+#include <pthread.h>
 #include "../include/config.h"
 #include "../include/common.h"
 
 static FILE* log_file;
+static pthread_mutex_t log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 enum ReturnCode initialize_logger() {
     const struct Config* config = get_config();
@@ -47,9 +49,16 @@ void log_message(enum Level level, const char* message) {
         default:    level_str = "UNKNOWN";
     }
 
+    pthread_mutex_lock(&log_mutex);
     fprintf(log_file, "[%s] [%s] %s\n", curr_time_str, level_str, message);
+    fflush(log_file);
+    pthread_mutex_unlock(&log_mutex);
 }
 
 void deinitialize_logger() {
+    pthread_mutex_lock(&log_mutex);
     fclose(log_file);
+    log_file = NULL;
+    pthread_mutex_unlock(&log_mutex);
+    pthread_mutex_destroy(&log_mutex);
 }
