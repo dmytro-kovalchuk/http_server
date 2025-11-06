@@ -269,7 +269,7 @@ static void handle_requests(int server_fd) {
 
         const struct Config* config = get_config();
         pthread_mutex_lock(&client_count_mutex);
-        if (active_clients > config->max_clients) {
+        if (active_clients >= config->max_clients) {
             pthread_mutex_unlock(&client_count_mutex);
             LOG_WARN("Reached max clients count, connection rejected");
             close(client_socket);
