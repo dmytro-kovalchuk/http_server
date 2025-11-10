@@ -61,7 +61,7 @@ static int get_value_from_config(const char* config_str, const char* field, char
     return RET_SUCCESS;
 }
 
-static int parse_and_set_config(char* config_str) {
+static enum ReturnCode parse_and_set_config(char* config_str) {
     if (config_str == NULL) return RET_ARGUMENT_IS_NULL;
 
     char buffer[CONFIG_FIELD_BUFFER_SIZE];
