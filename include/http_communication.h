@@ -52,4 +52,11 @@ int is_keep_alive(const struct HeaderList headers);
 */
 void free_request(struct Request* request);
 
+/**
+    * Deallocates memory of response and headers list.
+    *
+    * @param[in] response The pointer to Response structure.
+*/
+void free_response(struct Response* response);
+
 #endif // HTTP_COMMUNICATION_H

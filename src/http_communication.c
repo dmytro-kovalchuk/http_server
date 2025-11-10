@@ -155,8 +155,7 @@ static enum ReturnCode send_raw_response(int client_socket, struct Response* res
     }
 
     char* raw_response = response_to_string(response);
-    free(response->body);
-    free_headers(&response->headers);
+    free_response(response);
 
     if (raw_response == NULL) {
         return RET_ERROR;
@@ -300,4 +299,11 @@ void free_request(struct Request* request) {
     free_headers(&request->headers);
     free(request->body);
     request->body = NULL;
+}
+
+void free_response(struct Response* response) {
+    if (response == NULL) return;
+    free_headers(&response->headers);
+    free(response->body);
+    response->body = NULL;
 }
