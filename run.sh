@@ -2,4 +2,3 @@
 
 ./build.sh
 ./build/http_server
-cd ..
