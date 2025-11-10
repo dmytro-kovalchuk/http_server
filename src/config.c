@@ -136,9 +136,9 @@ static char* read_config(const char* path) {
 static void initialize_config() {
     config.ip = DEFAULT_IP_VALUE;
     config.port = DEFAULT_PORT_VALUE;
-    config.max_clients = DEFAULT_MAX_CLIENTS_VALUE;
-    strncpy(config.root_directory, DEFAULT_ROOT_DIR_VALUE, sizeof(config.root_directory));
-    strncpy(config.log_file, DEFAULT_LOG_FILE_VALUE, sizeof(config.log_file));
+    config.max_clients = DEFAULT_MAX_CLIENTS_COUNT;
+    strncpy(config.root_directory, DEFAULT_ROOT_DIR, sizeof(config.root_directory));
+    strncpy(config.log_file, DEFAULT_LOG_FILENAME, sizeof(config.log_file));
 }
 
 enum ReturnCode load_config(const char* path) {
