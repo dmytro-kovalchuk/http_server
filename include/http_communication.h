@@ -28,23 +28,23 @@ struct Request parse_request(const char* raw_request);
 /**
     * Creates an HTTP response string from a given Request.
     *
-    * @param[in] request The parsed Request structure.
+    * @param[in] request The pointer to parsed Request structure.
     *
     * @return Returns a dynamically allocated string representing
     * the HTTP response message.
     *
     * @note The caller is responsible for freeing the returned string.
 */
-char* create_response(struct Request request);
+char* create_response(const struct Request* request);
 
 /**
     * Handles an HTTP GET request.
     *
-    * @param[in] request The parsed Request structure.
+    * @param[in] request The pointer to parsed Request structure.
     *
     * @return Returns a Response structure containing the server's reply.
 */
-struct Response handle_method_get(struct Request request);
+struct Response handle_method_get(const struct Request* request);
 
 /**
     * Handles an HTTP POST request.
@@ -56,11 +56,11 @@ struct Response handle_method_post();
 /**
     * Handles an HTTP DELETE request.
     *
-    * @param[in] request The parsed Request structure.
+    * @param[in] request The pointer to parsed Request structure.
     *
     * @return Returns a Response structure containing the server's reply.
 */
-struct Response handle_method_delete(struct Request request);
+struct Response handle_method_delete(const struct Request* request);
 
 /**
     * Handles unsupported or unknown HTTP methods.
@@ -72,14 +72,14 @@ struct Response handle_method_other();
 /**
     * Converts a Response structure into a complete HTTP response string.
     *
-    * @param[in] response The Response structure to convert.
+    * @param[in] response The pointer to Response structure to convert.
     *
     * @return Returns a dynamically allocated string containing
     * the formatted HTTP response.
     *
     * @note The caller is responsible for freeing the returned string.
 */
-char* convert_struct_to_string(struct Response response);
+char* convert_struct_to_string(struct Response* response);
 
 /**
     * Determines whether the HTTP connection should remain open.
@@ -94,7 +94,7 @@ int is_keep_alive(const struct HeaderList headers);
 /**
     * Deallocates memory of request and headers list.
     *
-    * @param[in] request The Request structure.
+    * @param[in] request The pointer to Request structure.
 */
 void free_request(struct Request* request);
 

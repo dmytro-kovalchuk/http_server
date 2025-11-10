@@ -120,10 +120,10 @@ static struct Response initialize_response() {
     return response;
 }
 
-char* create_response(struct Request request) {
+char* create_response(const struct Request* request) {
     struct Response response;
 
-    switch (request.method) {
+    switch (request->method) {
         case GET: response = handle_method_get(request); break;
         case POST: response = handle_method_post(); break;
         case DELETE: response = handle_method_delete(request); break;
@@ -131,20 +131,20 @@ char* create_response(struct Request request) {
         default: response = handle_method_other();
     }
 
-    if (is_keep_alive(request.headers)) {
+    if (is_keep_alive(request->headers)) {
         add_header(&response.headers, "Connection", "keep-alive");
         add_header(&response.headers, "Keep-Alive", "timeout=5, max=100");
     } else {
         add_header(&response.headers, "Connection", "close");
     }
 
-    return convert_struct_to_string(response);
+    return convert_struct_to_string(&response);
 }
 
-struct Response handle_method_get(struct Request request) {
+struct Response handle_method_get(const struct Request* request) {
     struct Response response = initialize_response();
 
-    if (check_file_exists(request.path) != RET_SUCCESS) {
+    if (check_file_exists(request->path) != RET_SUCCESS) {
         LOG_WARN("GET: file not found");
         strcpy(response.status, STATUS_404_NOT_FOUND);
         response.body = strdup("Not Found");
@@ -157,7 +157,7 @@ struct Response handle_method_get(struct Request request) {
     LOG_INFO("GET: file found");
     strcpy(response.status, STATUS_200_OK);
     add_header(&response.headers, "Content-Type", "application/octet-stream");
-    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request.path));
+    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request->path));
     return response;
 }
 
@@ -174,10 +174,10 @@ struct Response handle_method_post() {
     return response;
 }
 
-struct Response handle_method_delete(struct Request request) {
+struct Response handle_method_delete(const struct Request* request) {
     struct Response response = initialize_response();
 
-    if (delete_file(request.path) == RET_SUCCESS) {
+    if (delete_file(request->path) == RET_SUCCESS) {
         strcpy(response.status, STATUS_200_OK);
         response.body = strdup("File deleted.\n");
     } else {
@@ -206,10 +206,10 @@ struct Response handle_method_other() {
     return response;
 }
 
-char* convert_struct_to_string(struct Response response) {
-    size_t total_estimated = HTTP_VERSION_SIZE + response.body_size + RESPONSE_EXTRA_BYTES;
-    for (size_t i = 0; i < response.headers.size; ++i) {
-        total_estimated += strlen(response.headers.items[i].key) + strlen(response.headers.items[i].value) + 4;
+char* convert_struct_to_string(struct Response* response) {
+    size_t total_estimated = HTTP_VERSION_SIZE + response->body_size + RESPONSE_EXTRA_BYTES;
+    for (size_t i = 0; i < response->headers.size; ++i) {
+        total_estimated += strlen(response->headers.items[i].key) + strlen(response->headers.items[i].value) + 4;
     }
 
     char* response_str = malloc(total_estimated);
@@ -218,23 +218,23 @@ char* convert_struct_to_string(struct Response response) {
         return NULL;
     }
 
-    size_t offset = snprintf(response_str, total_estimated, "%s\r\n", response.status);
-    for (size_t i = 0; i < response.headers.size; ++i) {
+    size_t offset = snprintf(response_str, total_estimated, "%s\r\n", response->status);
+    for (size_t i = 0; i < response->headers.size; ++i) {
         offset += snprintf(response_str + offset, total_estimated - offset,
                            "%s: %s\r\n",
-                           response.headers.items[i].key,
-                           response.headers.items[i].value);
+                           response->headers.items[i].key,
+                           response->headers.items[i].value);
     }
     offset += snprintf(response_str + offset, total_estimated - offset, "\r\n");
 
-    if (response.body && response.body_size > 0) {
-        memcpy(response_str + offset, response.body, response.body_size);
-        offset += response.body_size;
+    if (response->body && response->body_size > 0) {
+        memcpy(response_str + offset, response->body, response->body_size);
+        offset += response->body_size;
     }
     response_str[offset] = '\0';
 
-    free(response.body);
-    free_headers(&response.headers);
+    free(response->body);
+    free_headers(&response->headers);
     return response_str;
 }
 

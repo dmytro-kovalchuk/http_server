@@ -56,15 +56,15 @@ static void send_method_continue(int client_socket) {
     }
 }
 
-static int send_method_post(int client_socket, struct Request request) {
-    const char* expect_header = get_header_value(&request.headers, "Expect");
+static int send_method_post(int client_socket, const struct Request* request) {
+    const char* expect_header = get_header_value(&request->headers, "Expect");
     if (expect_header && strcmp(expect_header, "100-continue") == 0) {
         send_method_continue(client_socket);
     }
 
-    const char* content_len_str = get_header_value(&request.headers, "Content-Length");
+    const char* content_len_str = get_header_value(&request->headers, "Content-Length");
     size_t content_len = content_len_str ? atoi(content_len_str) : 0;
-    if (receive_file(client_socket, request.path, content_len, request.body, request.body_size) != RET_SUCCESS) {
+    if (receive_file(client_socket, request->path, content_len, request->body, request->body_size) != RET_SUCCESS) {
         const char* error = "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n";
         send(client_socket, error, strlen(error), 0);
         LOG_ERROR("Failed to receive file");
@@ -79,17 +79,17 @@ static int send_method_post(int client_socket, struct Request request) {
     return RET_SUCCESS;
 }
 
-static void send_method_get(int client_socket, struct Request request) {
+static void send_method_get(int client_socket, const struct Request* request) {
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
     LOG_INFO("GET method response sent");
-    if (send_file(client_socket, request.path) != RET_SUCCESS) {
+    if (send_file(client_socket, request->path) != RET_SUCCESS) {
         LOG_ERROR("Failed to send file");
     }
 }
 
-static void send_method_delete(int client_socket, struct Request request) {
+static void send_method_delete(int client_socket, const struct Request* request) {
     char* raw_response = create_response(request);
     send(client_socket, raw_response, strlen(raw_response), 0);
     free(raw_response);
@@ -102,8 +102,8 @@ static void send_method_other(int client_socket) {
     LOG_WARN("Other method response sent");
 }
 
-static void send_response(int client_socket, struct Request request) {
-    switch (request.method) {
+static void send_response(int client_socket, const struct Request* request) {
+    switch (request->method) {
         case GET: send_method_get(client_socket, request); break;
         case POST: send_method_post(client_socket, request); break;
         case DELETE: send_method_delete(client_socket, request); break;
@@ -237,7 +237,7 @@ static void* handle_client(void* arg) {
         }
 
         struct Request request = parse_request(raw_request);
-        send_response(client_socket, request);
+        send_response(client_socket, &request);
         free(raw_request);
 
         if (!is_keep_alive(request.headers)) {
