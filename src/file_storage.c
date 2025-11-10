@@ -17,6 +17,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <pthread.h>
+#include <sys/param.h>
 #include "../include/logger.h"
 #include "../include/config.h"
 #include "../include/common.h"
@@ -124,7 +125,7 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
     memset(buffer, 0, sizeof(buffer));
 
     while (remaining_bytes > 0) {
-        size_t data_chunk = remaining_bytes < sizeof(buffer) ? remaining_bytes : sizeof(buffer);
+        size_t data_chunk = MIN(remaining_bytes, sizeof(buffer));
 
         ssize_t received_bytes = recv(client_socket, buffer, data_chunk, 0);
         if (received_bytes <= 0) {
