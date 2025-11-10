@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/socket.h>
 #include "../include/http_header.h"
 #include "../include/file_storage.h"
 #include "../include/logger.h"
@@ -120,15 +121,37 @@ static struct Response initialize_response() {
     return response;
 }
 
-char* create_response(const struct Request* request) {
+static enum ReturnCode send_raw_response(int client_socket, struct Response* response) {
+    char* raw_response = response_to_string(response);
+    free(response->body);
+    free_headers(&response->headers);
+    
+    if (send(client_socket, raw_response, strlen(raw_response), 0) == RET_ERROR) {
+        LOG_ERROR("Response was not sent");
+        free(raw_response);
+        return RET_RESPONSE_NOT_SENT;
+    }
+
+    LOG_INFO("Response sent successfully");
+    free(raw_response);
+    return RET_SUCCESS;
+}
+
+enum ReturnCode handle_request(int client_socket, struct Request* request) {
+    LOG_INFO("Sending response");
+    struct Response response = create_response(request);
+    return send_raw_response(client_socket, &response);
+}
+
+struct Response create_response(const struct Request* request) {
     struct Response response;
 
     switch (request->method) {
-        case GET: response = handle_method_get(request); break;
-        case POST: response = handle_method_post(); break;
-        case DELETE: response = handle_method_delete(request); break;
+        case GET: response = create_method_get_response(request); break;
+        case POST: response = create_method_post_response(); break;
+        case DELETE: response = create_method_delete_response(request); break;
         case UNKNOWN: 
-        default: response = handle_method_other();
+        default: response = create_method_other_response();
     }
 
     if (is_keep_alive(request->headers)) {
@@ -138,10 +161,11 @@ char* create_response(const struct Request* request) {
         add_header(&response.headers, "Connection", "close");
     }
 
-    return response_to_string(&response);
+    LOG_INFO("Response created");
+    return response;
 }
 
-struct Response handle_method_get(const struct Request* request) {
+struct Response create_method_get_response(const struct Request* request) {
     struct Response response = initialize_response();
 
     if (check_file_exists(request->path) != RET_SUCCESS) {
@@ -161,7 +185,7 @@ struct Response handle_method_get(const struct Request* request) {
     return response;
 }
 
-struct Response handle_method_post() {
+struct Response create_method_post_response() {
     struct Response response = initialize_response();
 
     strcpy(response.status, STATUS_201_CREATED);
@@ -174,7 +198,7 @@ struct Response handle_method_post() {
     return response;
 }
 
-struct Response handle_method_delete(const struct Request* request) {
+struct Response create_method_delete_response(const struct Request* request) {
     struct Response response = initialize_response();
 
     if (delete_file(request->path) == RET_SUCCESS) {
@@ -193,7 +217,7 @@ struct Response handle_method_delete(const struct Request* request) {
     return response;
 }
 
-struct Response handle_method_other() {
+struct Response create_method_other_response() {
     struct Response response = initialize_response();
 
     strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
@@ -206,7 +230,7 @@ struct Response handle_method_other() {
     return response;
 }
 
-char* response_to_string(struct Response* response) {
+char* response_to_string(const struct Response* response) {
     size_t total_estimated = HTTP_VERSION_SIZE + response->body_size + RESPONSE_EXTRA_BYTES;
     for (size_t i = 0; i < response->headers.size; ++i) {
         total_estimated += strlen(response->headers.items[i].key) + strlen(response->headers.items[i].value) + 4;
@@ -233,8 +257,6 @@ char* response_to_string(struct Response* response) {
     }
     response_str[offset] = '\0';
 
-    free(response->body);
-    free_headers(&response->headers);
     return response_str;
 }
 

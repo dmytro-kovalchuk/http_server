@@ -17,6 +17,16 @@
 #include "http_messages.h"
 
 /**
+    * Creates response and sends it.
+    *
+    * @param[in] client_socket The client socket descriptor.
+    * @param[in] request The pointer to parsed Request structure.
+    *
+    * @return Returns 0 on success or error code on failure.
+*/
+enum ReturnCode handle_request(int client_socket, struct Request* request);
+
+/**
     * Parses a raw HTTP request string into a structured Request object.
     *
     * @param[in] raw_request The raw HTTP request string.
@@ -35,7 +45,7 @@ struct Request parse_request(const char* raw_request);
     *
     * @note The caller is responsible for freeing the returned string.
 */
-char* create_response(const struct Request* request);
+struct Response create_response(const struct Request* request);
 
 /**
     * Handles an HTTP GET request.
@@ -44,14 +54,14 @@ char* create_response(const struct Request* request);
     *
     * @return Returns a Response structure containing the server's reply.
 */
-struct Response handle_method_get(const struct Request* request);
+struct Response create_method_get_response(const struct Request* request);
 
 /**
     * Handles an HTTP POST request.
     *
     * @return Returns a Response structure containing the server's reply.
 */
-struct Response handle_method_post();
+struct Response create_method_post_response();
 
 /**
     * Handles an HTTP DELETE request.
@@ -60,14 +70,14 @@ struct Response handle_method_post();
     *
     * @return Returns a Response structure containing the server's reply.
 */
-struct Response handle_method_delete(const struct Request* request);
+struct Response create_method_delete_response(const struct Request* request);
 
 /**
     * Handles unsupported or unknown HTTP methods.
     *
     * @return Returns a Response structure with an appropriate error status.
 */
-struct Response handle_method_other();
+struct Response create_method_other_response();
 
 /**
     * Converts a Response structure into a complete HTTP response string.
@@ -79,7 +89,7 @@ struct Response handle_method_other();
     *
     * @note The caller is responsible for freeing the returned string.
 */
-char* response_to_string(struct Response* response);
+char* response_to_string(const struct Response* response);
 
 /**
     * Determines whether the HTTP connection should remain open.

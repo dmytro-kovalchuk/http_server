@@ -39,14 +39,14 @@ int g_server_fd = -1;
 volatile unsigned int active_clients = 0;
 pthread_mutex_t client_count_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static void send_method_continue(int client_socket) {
+static enum ReturnCode send_method_continue(int client_socket) {
     const char* continue_response = "HTTP/1.1 100 Continue\r\n\r\n";
     size_t response_len = strlen(continue_response);
     ssize_t bytes_sent = send(client_socket, continue_response, response_len, 0);
 
     if (bytes_sent < 0) {
         LOG_ERROR("Failed to send 100 Continue response");
-        return;
+        return RET_RESPONSE_NOT_SENT;
     }
 
     if ((size_t)bytes_sent < response_len) {
@@ -54,12 +54,16 @@ static void send_method_continue(int client_socket) {
     } else {
         LOG_INFO("100 Continue response sent successfully");
     }
+
+    return RET_SUCCESS;
 }
 
-static int send_method_post(int client_socket, const struct Request* request) {
+static enum ReturnCode send_method_post(int client_socket, struct Request* request) {
     const char* expect_header = get_header_value(&request->headers, "Expect");
     if (expect_header && strcmp(expect_header, "100-continue") == 0) {
-        send_method_continue(client_socket);
+        if (send_method_continue(client_socket) != RET_SUCCESS) {
+            return RET_RESPONSE_NOT_SENT;
+        }
     }
 
     const char* content_len_str = get_header_value(&request->headers, "Content-Length");
@@ -71,29 +75,34 @@ static int send_method_post(int client_socket, const struct Request* request) {
         return RET_ERROR;
     }
 
-    char* raw_response = create_response(request);
-    send(client_socket, raw_response, strlen(raw_response), 0);
-    free(raw_response);
+    if (handle_request(client_socket, request) == RET_RESPONSE_NOT_SENT) {
+        return RET_RESPONSE_NOT_SENT;
+    }
 
     LOG_INFO("POST method response sent");
     return RET_SUCCESS;
 }
 
-static void send_method_get(int client_socket, const struct Request* request) {
-    char* raw_response = create_response(request);
-    send(client_socket, raw_response, strlen(raw_response), 0);
-    free(raw_response);
+static enum ReturnCode send_method_get(int client_socket, struct Request* request) {
+    if (handle_request(client_socket, request) == RET_RESPONSE_NOT_SENT) {
+        return RET_RESPONSE_NOT_SENT;
+    }
+    
     LOG_INFO("GET method response sent");
     if (send_file(client_socket, request->path) != RET_SUCCESS) {
         LOG_ERROR("Failed to send file");
+        return RET_ERROR;
     }
+
+    return RET_SUCCESS;
 }
 
-static void send_method_delete(int client_socket, const struct Request* request) {
-    char* raw_response = create_response(request);
-    send(client_socket, raw_response, strlen(raw_response), 0);
-    free(raw_response);
+static enum ReturnCode send_method_delete(int client_socket, struct Request* request) {
+    if (handle_request(client_socket, request) == RET_RESPONSE_NOT_SENT) {
+        return RET_RESPONSE_NOT_SENT;
+    }
     LOG_INFO("DELETE method response sent");
+    return RET_SUCCESS;
 }
 
 static void send_method_other(int client_socket) {
@@ -102,14 +111,16 @@ static void send_method_other(int client_socket) {
     LOG_WARN("Other method response sent");
 }
 
-static void send_response(int client_socket, const struct Request* request) {
+static enum ReturnCode send_response(int client_socket, struct Request* request) {
+    enum ReturnCode return_code = RET_SUCCESS;
     switch (request->method) {
-        case GET: send_method_get(client_socket, request); break;
-        case POST: send_method_post(client_socket, request); break;
-        case DELETE: send_method_delete(client_socket, request); break;
+        case GET: return_code = send_method_get(client_socket, request); break;
+        case POST: return_code = send_method_post(client_socket, request); break;
+        case DELETE: return_code = send_method_delete(client_socket, request); break;
         case UNKNOWN: 
         default: send_method_other(client_socket);
     }
+    return return_code;
 }
 
 static void make_port_reusable(int server_fd) {
@@ -229,7 +240,7 @@ static void* handle_client(void* arg) {
     int client_socket = *(int*)arg;
     free(arg);
 
-    while (1) {
+    while (is_server_running) {
         char* raw_request = receive_request(client_socket);
         if (raw_request == NULL) {
             LOG_WARN("Client closed connection or invalid request");
@@ -237,7 +248,11 @@ static void* handle_client(void* arg) {
         }
 
         struct Request request = parse_request(raw_request);
-        send_response(client_socket, &request);
+        if (send_response(client_socket, &request) != RET_SUCCESS) {
+            LOG_ERROR("Couln't send response, closing connection with client");
+            free(raw_request);
+            break;
+        }
         free(raw_request);
 
         if (!is_keep_alive(request.headers)) {

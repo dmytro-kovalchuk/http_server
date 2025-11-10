@@ -35,8 +35,8 @@ enum ReturnCode {
     RET_ERROR = -1,
     RET_ARGUMENT_IS_NULL = -2,
     RET_CONFIG_PARSING_ERROR = -3,
-    RET_FILE_NOT_OPENED = -4
-
+    RET_FILE_NOT_OPENED = -4,
+    RET_RESPONSE_NOT_SENT = -5
 };
 
 #endif // COMMON_H
