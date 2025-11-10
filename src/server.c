@@ -314,6 +314,11 @@ static void handle_requests(int server_fd) {
         pthread_mutex_unlock(&client_count_mutex);
 
         int* client_socket_ptr = malloc(sizeof(int));
+        if (client_socket_ptr == NULL) {
+            LOG_ERROR("Couldn't allocate memory for client socket");
+            close(client_socket);
+            continue;
+        }
         *client_socket_ptr = client_socket;
 
         pthread_t thread_id;
