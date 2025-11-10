@@ -268,6 +268,14 @@ static void* handle_client(void* arg) {
         }
 
         struct Request request = parse_request(raw_request);
+        struct Request zeroed;
+        memset(&zeroed, 0, sizeof(zeroed));
+        if (memcmp(&request, &zeroed, sizeof(request)) == RET_SUCCESS) {
+            LOG_ERROR("Request wasn't parsed correctly");
+            free(raw_request);
+            break;
+        }
+
         if (send_response(client_socket, &request) != RET_SUCCESS) {
             LOG_ERROR("Couln't send response, closing connection with client");
             free(raw_request);
