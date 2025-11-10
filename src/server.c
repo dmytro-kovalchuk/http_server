@@ -59,6 +59,11 @@ static enum ReturnCode send_method_continue(int client_socket) {
 }
 
 static enum ReturnCode send_method_post(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
     const char* expect_header = get_header_value(&request->headers, "Expect");
     if (expect_header && strcmp(expect_header, "100-continue") == 0) {
         if (send_method_continue(client_socket) != RET_SUCCESS) {
@@ -84,6 +89,11 @@ static enum ReturnCode send_method_post(int client_socket, struct Request* reque
 }
 
 static enum ReturnCode send_method_get(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
     if (handle_request(client_socket, request) == RET_RESPONSE_NOT_SENT) {
         return RET_RESPONSE_NOT_SENT;
     }
@@ -98,6 +108,11 @@ static enum ReturnCode send_method_get(int client_socket, struct Request* reques
 }
 
 static enum ReturnCode send_method_delete(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
     if (handle_request(client_socket, request) == RET_RESPONSE_NOT_SENT) {
         return RET_RESPONSE_NOT_SENT;
     }
@@ -112,6 +127,11 @@ static void send_method_other(int client_socket) {
 }
 
 static enum ReturnCode send_response(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
     enum ReturnCode return_code = RET_SUCCESS;
     switch (request->method) {
         case GET: return_code = send_method_get(client_socket, request); break;

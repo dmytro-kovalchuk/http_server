@@ -122,9 +122,18 @@ static struct Response initialize_response() {
 }
 
 static enum ReturnCode send_raw_response(int client_socket, struct Response* response) {
+    if (response == NULL) {
+        LOG_ERROR("Response is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
     char* raw_response = response_to_string(response);
     free(response->body);
     free_headers(&response->headers);
+
+    if (raw_response == NULL) {
+        return RET_ERROR;
+    }
     
     if (send(client_socket, raw_response, strlen(raw_response), 0) == RET_ERROR) {
         LOG_ERROR("Response was not sent");
@@ -138,12 +147,21 @@ static enum ReturnCode send_raw_response(int client_socket, struct Response* res
 }
 
 enum ReturnCode handle_request(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
     LOG_INFO("Sending response");
     struct Response response = create_response(request);
     return send_raw_response(client_socket, &response);
 }
 
 struct Response create_response(const struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return initialize_response();
+    }
+
     struct Response response;
 
     switch (request->method) {
@@ -167,6 +185,11 @@ struct Response create_response(const struct Request* request) {
 
 struct Response create_method_get_response(const struct Request* request) {
     struct Response response = initialize_response();
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
 
     if (check_file_exists(request->path) != RET_SUCCESS) {
         LOG_WARN("GET: file not found");
@@ -201,6 +224,11 @@ struct Response create_method_post_response() {
 struct Response create_method_delete_response(const struct Request* request) {
     struct Response response = initialize_response();
 
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
     if (delete_file(request->path) == RET_SUCCESS) {
         strcpy(response.status, STATUS_200_OK);
         response.body = strdup("File deleted.\n");
@@ -231,6 +259,11 @@ struct Response create_method_other_response() {
 }
 
 char* response_to_string(const struct Response* response) {
+    if (response == NULL) {
+        LOG_ERROR("Response is NULL");
+        return NULL;
+    }
+
     size_t total_estimated = HTTP_VERSION_SIZE + response->body_size + RESPONSE_EXTRA_BYTES;
     for (size_t i = 0; i < response->headers.size; ++i) {
         total_estimated += strlen(response->headers.items[i].key) + strlen(response->headers.items[i].value) + 4;
