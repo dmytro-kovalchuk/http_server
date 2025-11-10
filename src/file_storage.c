@@ -14,6 +14,7 @@
 #include "../include/file_storage.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <pthread.h>
 #include "../include/logger.h"
@@ -56,18 +57,19 @@ enum ReturnCode send_file(int client_socket, const char* filename) {
         return RET_ERROR;
     }
 
-    pthread_mutex_lock(&file_mutex); // Lock before reading file to prevent deletion during send
+    pthread_mutex_lock(&file_mutex);
     FILE* file = fopen(path, "rb");
     if (file == NULL) {
         pthread_mutex_unlock(&file_mutex);
         LOG_ERROR("Couldn't open file");
         return RET_FILE_NOT_OPENED;
     }
-    pthread_mutex_unlock(&file_mutex); // Unlock after opening file
+    pthread_mutex_unlock(&file_mutex);
 
     char buffer[BUFSIZ];
-    size_t bytes_read;
+    memset(buffer, 0, sizeof(buffer));
 
+    size_t bytes_read;
     while((bytes_read = fread(buffer, 1, BUFSIZ, file)) > 0) {
         size_t total_sent = 0;
         while (total_sent < bytes_read) {
@@ -119,6 +121,8 @@ enum ReturnCode receive_file(int client_socket, const char* filename, size_t fil
     }
 
     char buffer[BUFSIZ];
+    memset(buffer, 0, sizeof(buffer));
+
     while (remaining_bytes > 0) {
         size_t data_chunk = remaining_bytes < sizeof(buffer) ? remaining_bytes : sizeof(buffer);
 

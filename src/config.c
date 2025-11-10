@@ -65,6 +65,7 @@ static enum ReturnCode parse_and_set_config(char* config_str) {
     if (config_str == NULL) return RET_ARGUMENT_IS_NULL;
 
     char buffer[CONFIG_FIELD_BUFFER_SIZE];
+    memset(buffer, 0, sizeof(buffer));
 
     if (get_value_from_config(config_str, "ip", buffer) == RET_SUCCESS) {
         struct in_addr address;
