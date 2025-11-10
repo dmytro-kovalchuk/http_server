@@ -1,0 +1,309 @@
+/**
+    * @file: http_communication.c
+    * @author: Dmytro Kovalchuk
+    *
+    * This file contains definitions of functions that handle
+    * HTTP communication logic for the server application.
+    *
+    * It implements parsing of HTTP requests, generation of
+    * appropriate HTTP responses, and handling of supported
+    * methods such as GET, POST, and DELETE. Unsupported
+    * methods result in an HTTP 405 response.
+    *
+    * Additionally, this file includes functionality for
+    * converting response structures into raw HTTP strings,
+    * extracting header information such as Content-Length,
+    * and determining whether connections should be kept alive.
+*/
+
+#include "../include/http_communication.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/socket.h>
+#include "../include/http_header.h"
+#include "../include/file_storage.h"
+#include "../include/logger.h"
+#include "../include/common.h"
+
+#define METHOD_GET "GET"
+#define METHOD_POST "POST"
+#define METHOD_DELETE "DELETE"
+
+static void initialize_request(struct Request* request) {
+    memset(request, 0, sizeof(*request));
+}
+
+static struct HeaderList parse_headers(const char* raw_headers) {
+    struct HeaderList list = {NULL, 0};
+    if (raw_headers == NULL) return list;
+
+    const char* line_start = raw_headers;
+    const char* line_end;
+
+    while ((line_end = strstr(line_start, "\r\n")) != NULL) {
+        if (line_end == line_start) break;
+
+        const char* colon = strchr(line_start, ':');
+        if (colon && colon < line_end) {
+            size_t key_len = colon - line_start;
+            size_t value_len = line_end - (colon + 1);
+            while (value_len > 0 && ((colon[1 + value_len - 1] == ' ') || (colon[1 + value_len - 1] == '\t'))) {
+                value_len--;
+            }
+
+            list.items = realloc(list.items, sizeof(struct Header) * (list.size + 1));
+            list.items[list.size].key = strndup(line_start, key_len);
+            list.items[list.size].value = strndup(colon + 1, value_len);
+            list.size++;
+        }
+
+        line_start = line_end + 2;
+    }
+
+    return list;
+}
+
+struct Request parse_request(const char* raw_request) {
+    struct Request request;
+    initialize_request(&request);
+
+    if (raw_request == NULL) {
+        LOG_WARN("Raw request is NULL");
+        return request;
+    }
+
+    char method[METHOD_STR_LEN];
+    int parsed = sscanf(raw_request, "%15s %511s %31s", method, request.path, request.version);
+    if (parsed != 3) {
+        LOG_ERROR("Couldn't parse raw request");
+        return request;
+    }
+
+    if (strcmp(method, METHOD_GET) == RET_SUCCESS) {
+        request.method = GET;
+    } else if (strcmp(method, METHOD_POST) == RET_SUCCESS) {
+        request.method = POST;
+    } else if (strcmp(method, METHOD_DELETE) == RET_SUCCESS) {
+        request.method = DELETE;
+    } else {
+        request.method = UNKNOWN;
+    }
+
+    const char* header_end = strstr(raw_request, "\r\n\r\n");
+    if (header_end != NULL) {
+        size_t header_size = header_end - raw_request;
+        char* header_buf = strndup(raw_request, header_size);
+        request.headers = parse_headers(header_buf);
+        free(header_buf);
+
+        const char* after_header = header_end + 4;
+        if (*after_header) {
+            request.body_size = strlen(after_header);
+            request.body = strndup(after_header, request.body_size);
+        }
+    }
+
+    LOG_INFO("Raw request parsed successfully");
+    return request;
+}
+
+static void initialize_response(struct Response* response) {
+    memset(response, 0, sizeof(*response));
+}
+
+static char* response_to_string(const struct Response* response) {
+    if (response == NULL) {
+        LOG_ERROR("Response is NULL");
+        return NULL;
+    }
+
+    size_t total_estimated = HTTP_VERSION_SIZE + response->body_size + RESPONSE_EXTRA_BYTES;
+    for (size_t i = 0; i < response->headers.size; ++i) {
+        total_estimated += strlen(response->headers.items[i].key) + strlen(response->headers.items[i].value) + 4;
+    }
+
+    char* response_str = malloc(total_estimated);
+    if (response_str == NULL) {
+        LOG_ERROR("Failed to allocate response response_str");
+        return NULL;
+    }
+
+    size_t offset = snprintf(response_str, total_estimated, "%s\r\n", response->status);
+    for (size_t i = 0; i < response->headers.size; ++i) {
+        offset += snprintf(response_str + offset, total_estimated - offset,
+                           "%s: %s\r\n",
+                           response->headers.items[i].key,
+                           response->headers.items[i].value);
+    }
+    offset += snprintf(response_str + offset, total_estimated - offset, "\r\n");
+
+    if (response->body && response->body_size > 0) {
+        memcpy(response_str + offset, response->body, response->body_size);
+        offset += response->body_size;
+    }
+    response_str[offset] = '\0';
+
+    return response_str;
+}
+
+static enum ReturnCode send_raw_response(int client_socket, struct Response* response) {
+    if (response == NULL) {
+        LOG_ERROR("Response is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
+    char* raw_response = response_to_string(response);
+    free_response(response);
+
+    if (raw_response == NULL) {
+        return RET_ERROR;
+    }
+    
+    if (send(client_socket, raw_response, strlen(raw_response), 0) == RET_ERROR) {
+        LOG_ERROR("Response was not sent");
+        free(raw_response);
+        return RET_RESPONSE_NOT_SENT;
+    }
+
+    LOG_INFO("Response sent successfully");
+    free(raw_response);
+    return RET_SUCCESS;
+}
+
+static struct Response create_method_get_response(const struct Request* request) {
+    struct Response response;
+    initialize_response(&response);
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
+    if (check_file_exists(request->path) != RET_SUCCESS) {
+        LOG_WARN("GET: file not found");
+        strncpy(response.status, STATUS_404_NOT_FOUND, sizeof(response.status));
+        response.body = strdup("Not Found");
+        response.body_size = strlen(response.body);
+        add_header(&response.headers, "Content-Type", "text/plain");
+        add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+        return response;
+    }
+
+    LOG_INFO("GET: file found");
+    strncpy(response.status, STATUS_200_OK, sizeof(response.status));
+    add_header(&response.headers, "Content-Type", "application/octet-stream");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request->path));
+    return response;
+}
+
+static struct Response create_method_post_response() {
+    struct Response response;
+    initialize_response(&response);
+
+    strncpy(response.status, STATUS_201_CREATED, sizeof(response.status));
+    response.body = strdup("File created.\n");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_INFO("POST: file created response");
+    return response;
+}
+
+static struct Response create_method_delete_response(const struct Request* request) {
+    struct Response response;
+    initialize_response(&response);
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
+    if (delete_file(request->path) == RET_SUCCESS) {
+        strncpy(response.status, STATUS_200_OK, sizeof(response.status));
+        response.body = strdup("File deleted.\n");
+    } else {
+        strncpy(response.status, STATUS_404_NOT_FOUND, sizeof(response.status));
+        response.body = strdup("Not Found");
+    }
+
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_INFO("DELETE method response created");
+    return response;
+}
+
+static struct Response create_method_other_response() {
+    struct Response response;
+    initialize_response(&response);
+
+    strncpy(response.status, STATUS_405_METHOD_NOT_ALLOWED, sizeof(response.status));
+    response.body = strdup("Method not allowed");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_WARN("Other/unsupported method handled");
+    return response;
+}
+
+static struct Response create_response(const struct Request* request) {
+    struct Response response;
+    initialize_response(&response);
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
+    switch (request->method) {
+        case GET: response = create_method_get_response(request); break;
+        case POST: response = create_method_post_response(); break;
+        case DELETE: response = create_method_delete_response(request); break;
+        case UNKNOWN: 
+        default: response = create_method_other_response();
+    }
+
+    if (is_keep_alive(request->headers)) {
+        add_header(&response.headers, "Connection", "keep-alive");
+        add_header(&response.headers, "Keep-Alive", "timeout=5, max=100");
+    } else {
+        add_header(&response.headers, "Connection", "close");
+    }
+
+    LOG_INFO("Response created");
+    return response;
+}
+
+enum ReturnCode handle_request(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+    LOG_INFO("Sending response");
+    struct Response response = create_response(request);
+    return send_raw_response(client_socket, &response);
+}
+
+int is_keep_alive(const struct HeaderList headers) {
+    const char* connection_header = get_header_value(&headers, "Connection");
+    return connection_header != NULL && strcasecmp(connection_header, "keep-alive") == 0;
+}
+
+void free_request(struct Request* request) {
+    if (request == NULL) return;
+    free_headers(&request->headers);
+    free(request->body);
+    request->body = NULL;
+}
+
+void free_response(struct Response* response) {
+    if (response == NULL) return;
+    free_headers(&response->headers);
+    free(response->body);
+    response->body = NULL;
+}

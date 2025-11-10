@@ -1,0 +1,8 @@
+/*.txt
+/build/
+/tests/__pycache__/
+/.pytest_cache/
+/storage/
+/.vscode/
+/*.dat
+/test_file_transfer.sh
