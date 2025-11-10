@@ -109,38 +109,36 @@ static enum ReturnCode parse_and_set_config(const char* config_str) {
     return RET_SUCCESS;
 }
 
-static char* read_config(const char* path) {
-    if (path == NULL) return NULL;
+static enum ReturnCode read_config(const char* path, char* config_str) {
+    if (path == NULL) return RET_ARGUMENT_IS_NULL;
 
     FILE* file = fopen(path, "r");
-    if (file == NULL) {
-        return NULL;
-    }
+    if (file == NULL) return RET_FILE_NOT_OPENED;
 
     fseek(file, 0, SEEK_END);
     size_t size = ftell(file);
     if (size <= 0) {
         fclose(file);
-        return NULL;
+        return RET_ERROR;
     }
     rewind(file);
 
-    char* config_str = malloc(size + 1);
+    config_str = malloc(size + 1);
     if (config_str == NULL) {
         fclose(file);
-        return NULL;
+        return RET_ERROR;
     }
 
     size_t bytes_read = fread(config_str, 1, size, file);
     if (bytes_read <= 0) {
         fclose(file);
         free(config_str);
-        return NULL;
+        return RET_ERROR;
     }
 
     config_str[size] = '\0';
     fclose(file);
-    return config_str;
+    return RET_SUCCESS;
 }
 
 static void initialize_config() {
@@ -154,11 +152,15 @@ static void initialize_config() {
 enum ReturnCode load_config(const char* path) {
     initialize_config();
     
-    char* config_str = read_config(path);
-    enum ReturnCode return_code = parse_and_set_config(config_str);
+    char* config_str = NULL;
+    enum ReturnCode reading_return_code = read_config(path, config_str);
+    if (reading_return_code != RET_SUCCESS) return reading_return_code;
+    if (config_str != NULL) return RET_ERROR;
+
+    enum ReturnCode parsing_return_code = parse_and_set_config(config_str);
     free(config_str);
 
-    return return_code;
+    return parsing_return_code;
 }
 
 const struct Config* get_config() {
