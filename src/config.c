@@ -71,27 +71,37 @@ static enum ReturnCode parse_and_set_config(char* config_str) {
         struct in_addr address;
         if (inet_pton(AF_INET, buffer, &address) == 1) {
             config.ip = ntohl(address.s_addr);
+        } else {
+            return RET_CONFIG_PARSING_ERROR;
         }
     }
 
+    memset(buffer, 0, sizeof(buffer));
     if (get_value_from_config(config_str, "port", buffer) == RET_SUCCESS) {
         int port = atoi(buffer);
         if (port > 0 && port <= MAX_PORT) {
             config.port = port;
+        } else {
+            return RET_CONFIG_PARSING_ERROR;
         }
     }
 
+    memset(buffer, 0, sizeof(buffer));
     if (get_value_from_config(config_str, "max_clients", buffer) == RET_SUCCESS) {
         int clients = atoi(buffer);
         if (clients > 0) {
             config.max_clients = clients;
-        }   
+        } else {
+            return RET_CONFIG_PARSING_ERROR;
+        }
     }
 
+    memset(buffer, 0, sizeof(buffer));
     if (get_value_from_config(config_str, "root_directory", buffer) == RET_SUCCESS) {
         strncpy(config.root_directory, buffer, sizeof(config.root_directory));  
     }
 
+    memset(buffer, 0, sizeof(buffer));
     if (get_value_from_config(config_str, "log_file", buffer) == RET_SUCCESS) {
         strncpy(config.log_file, buffer, sizeof(config.log_file));
     }
