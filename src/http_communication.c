@@ -31,13 +31,8 @@
 #define METHOD_POST "POST"
 #define METHOD_DELETE "DELETE"
 
-static struct Request initialize_request() {
-    struct Request request;
-    memset(&request, 0, sizeof(request));
-    request.method = UNKNOWN;
-    request.body = NULL;
-    request.body_size = 0;
-    return request;
+static void initialize_request(struct Request* request) {
+    memset(request, 0, sizeof(*request));
 }
 
 static struct HeaderList parse_headers(const char* raw_headers) {
@@ -71,7 +66,8 @@ static struct HeaderList parse_headers(const char* raw_headers) {
 }
 
 struct Request parse_request(const char* raw_request) {
-    struct Request request = initialize_request();
+    struct Request request;
+    initialize_request(&request);
 
     if (raw_request == NULL) {
         LOG_WARN("Raw request is NULL");
@@ -113,12 +109,8 @@ struct Request parse_request(const char* raw_request) {
     return request;
 }
 
-static struct Response initialize_response() {
-    struct Response response;
-    memset(&response, 0, sizeof(response));
-    response.body = NULL;
-    response.body_size = 0;
-    return response;
+static void initialize_response(struct Response* response) {
+    memset(response, 0, sizeof(*response));
 }
 
 static char* response_to_string(const struct Response* response) {
@@ -182,7 +174,8 @@ static enum ReturnCode send_raw_response(int client_socket, struct Response* res
 }
 
 static struct Response create_method_get_response(const struct Request* request) {
-    struct Response response = initialize_response();
+    struct Response response;
+    initialize_response(&response);
 
     if (request == NULL) {
         LOG_ERROR("Request is NULL");
@@ -207,7 +200,8 @@ static struct Response create_method_get_response(const struct Request* request)
 }
 
 static struct Response create_method_post_response() {
-    struct Response response = initialize_response();
+    struct Response response;
+    initialize_response(&response);
 
     strcpy(response.status, STATUS_201_CREATED);
     response.body = strdup("File created.\n");
@@ -220,7 +214,8 @@ static struct Response create_method_post_response() {
 }
 
 static struct Response create_method_delete_response(const struct Request* request) {
-    struct Response response = initialize_response();
+    struct Response response;
+    initialize_response(&response);
 
     if (request == NULL) {
         LOG_ERROR("Request is NULL");
@@ -244,7 +239,8 @@ static struct Response create_method_delete_response(const struct Request* reque
 }
 
 static struct Response create_method_other_response() {
-    struct Response response = initialize_response();
+    struct Response response;
+    initialize_response(&response);
 
     strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
     response.body = strdup("Method not allowed");
@@ -257,12 +253,13 @@ static struct Response create_method_other_response() {
 }
 
 static struct Response create_response(const struct Request* request) {
+    struct Response response;
+    initialize_response(&response);
+
     if (request == NULL) {
         LOG_ERROR("Request is NULL");
-        return initialize_response();
+        return response;
     }
-
-    struct Response response;
 
     switch (request->method) {
         case GET: response = create_method_get_response(request); break;
