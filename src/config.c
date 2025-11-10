@@ -61,7 +61,7 @@ static int get_value_from_config(const char* config_str, const char* field, char
     return RET_SUCCESS;
 }
 
-static enum ReturnCode parse_and_set_config(char* config_str) {
+static enum ReturnCode parse_and_set_config(const char* config_str) {
     if (config_str == NULL) return RET_ARGUMENT_IS_NULL;
 
     char buffer[CONFIG_FIELD_BUFFER_SIZE];
@@ -106,7 +106,6 @@ static enum ReturnCode parse_and_set_config(char* config_str) {
         strncpy(config.log_file, buffer, sizeof(config.log_file));
     }
 
-    free(config_str);
     return RET_SUCCESS;
 }
 
@@ -154,8 +153,12 @@ static void initialize_config() {
 
 enum ReturnCode load_config(const char* path) {
     initialize_config();
+    
     char* config_str = read_config(path);
-    return parse_and_set_config(config_str);
+    enum ReturnCode return_code = parse_and_set_config(config_str);
+    free(config_str);
+
+    return return_code;
 }
 
 const struct Config* get_config() {
