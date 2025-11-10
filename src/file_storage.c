@@ -22,6 +22,29 @@
 
 static pthread_mutex_t file_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+static enum ReturnCode set_file_location(char* output, const char* filename) {
+    if (filename == NULL) {
+        LOG_ERROR("Filename is NULL");
+        output = NULL;
+        return RET_ARGUMENT_IS_NULL;
+    }
+
+    const struct Config* config = get_config();
+    int written_bytes = snprintf(output, MAX_PATH_LEN, "%s%s", config->root_directory, filename);
+
+    if (written_bytes < 0) {
+        LOG_ERROR("Error creating file path in storage");
+        output = NULL;
+        return RET_ERROR;
+    } else if (written_bytes >= MAX_PATH_LEN) {
+        LOG_ERROR("File path is bigger than buffer size");
+        output = NULL;
+        return RET_ERROR;
+    }
+
+    return RET_SUCCESS;
+}
+
 enum ReturnCode send_file(int client_socket, const char* filename) {
     if (filename == NULL) {
         LOG_ERROR("Filename is NULL");
@@ -180,27 +203,4 @@ size_t get_file_size(const char* filename) {
     
     fclose(file);
     return size;
-}
-
-enum ReturnCode set_file_location(char* output, const char* filename) {
-    if (filename == NULL) {
-        LOG_ERROR("Filename is NULL");
-        output = NULL;
-        return RET_ARGUMENT_IS_NULL;
-    }
-
-    const struct Config* config = get_config();
-    int written_bytes = snprintf(output, MAX_PATH_LEN, "%s%s", config->root_directory, filename);
-
-    if (written_bytes < 0) {
-        LOG_ERROR("Error creating file path in storage");
-        output = NULL;
-        return RET_ERROR;
-    } else if (written_bytes >= MAX_PATH_LEN) {
-        LOG_ERROR("File path is bigger than buffer size");
-        output = NULL;
-        return RET_ERROR;
-    }
-
-    return RET_SUCCESS;
 }

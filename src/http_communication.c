@@ -121,144 +121,7 @@ static struct Response initialize_response() {
     return response;
 }
 
-static enum ReturnCode send_raw_response(int client_socket, struct Response* response) {
-    if (response == NULL) {
-        LOG_ERROR("Response is NULL");
-        return RET_ARGUMENT_IS_NULL;
-    }
-
-    char* raw_response = response_to_string(response);
-    free(response->body);
-    free_headers(&response->headers);
-
-    if (raw_response == NULL) {
-        return RET_ERROR;
-    }
-    
-    if (send(client_socket, raw_response, strlen(raw_response), 0) == RET_ERROR) {
-        LOG_ERROR("Response was not sent");
-        free(raw_response);
-        return RET_RESPONSE_NOT_SENT;
-    }
-
-    LOG_INFO("Response sent successfully");
-    free(raw_response);
-    return RET_SUCCESS;
-}
-
-enum ReturnCode handle_request(int client_socket, struct Request* request) {
-    if (request == NULL) {
-        LOG_ERROR("Request is NULL");
-        return RET_ARGUMENT_IS_NULL;
-    }
-    LOG_INFO("Sending response");
-    struct Response response = create_response(request);
-    return send_raw_response(client_socket, &response);
-}
-
-struct Response create_response(const struct Request* request) {
-    if (request == NULL) {
-        LOG_ERROR("Request is NULL");
-        return initialize_response();
-    }
-
-    struct Response response;
-
-    switch (request->method) {
-        case GET: response = create_method_get_response(request); break;
-        case POST: response = create_method_post_response(); break;
-        case DELETE: response = create_method_delete_response(request); break;
-        case UNKNOWN: 
-        default: response = create_method_other_response();
-    }
-
-    if (is_keep_alive(request->headers)) {
-        add_header(&response.headers, "Connection", "keep-alive");
-        add_header(&response.headers, "Keep-Alive", "timeout=5, max=100");
-    } else {
-        add_header(&response.headers, "Connection", "close");
-    }
-
-    LOG_INFO("Response created");
-    return response;
-}
-
-struct Response create_method_get_response(const struct Request* request) {
-    struct Response response = initialize_response();
-
-    if (request == NULL) {
-        LOG_ERROR("Request is NULL");
-        return response;
-    }
-
-    if (check_file_exists(request->path) != RET_SUCCESS) {
-        LOG_WARN("GET: file not found");
-        strcpy(response.status, STATUS_404_NOT_FOUND);
-        response.body = strdup("Not Found");
-        response.body_size = strlen(response.body);
-        add_header(&response.headers, "Content-Type", "text/plain");
-        add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
-        return response;
-    }
-
-    LOG_INFO("GET: file found");
-    strcpy(response.status, STATUS_200_OK);
-    add_header(&response.headers, "Content-Type", "application/octet-stream");
-    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request->path));
-    return response;
-}
-
-struct Response create_method_post_response() {
-    struct Response response = initialize_response();
-
-    strcpy(response.status, STATUS_201_CREATED);
-    response.body = strdup("File created.\n");
-    response.body_size = strlen(response.body);
-    add_header(&response.headers, "Content-Type", "text/plain");
-    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
-
-    LOG_INFO("POST: file created response");
-    return response;
-}
-
-struct Response create_method_delete_response(const struct Request* request) {
-    struct Response response = initialize_response();
-
-    if (request == NULL) {
-        LOG_ERROR("Request is NULL");
-        return response;
-    }
-
-    if (delete_file(request->path) == RET_SUCCESS) {
-        strcpy(response.status, STATUS_200_OK);
-        response.body = strdup("File deleted.\n");
-    } else {
-        strcpy(response.status, STATUS_404_NOT_FOUND);
-        response.body = strdup("Not Found");
-    }
-
-    response.body_size = strlen(response.body);
-    add_header(&response.headers, "Content-Type", "text/plain");
-    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
-
-    LOG_INFO("DELETE method response created");
-    return response;
-}
-
-struct Response create_method_other_response() {
-    struct Response response = initialize_response();
-
-    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
-    response.body = strdup("Method not allowed");
-    response.body_size = strlen(response.body);
-    add_header(&response.headers, "Content-Type", "text/plain");
-    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
-
-    LOG_WARN("Other/unsupported method handled");
-    return response;
-}
-
-char* response_to_string(const struct Response* response) {
+static char* response_to_string(const struct Response* response) {
     if (response == NULL) {
         LOG_ERROR("Response is NULL");
         return NULL;
@@ -291,6 +154,143 @@ char* response_to_string(const struct Response* response) {
     response_str[offset] = '\0';
 
     return response_str;
+}
+
+static enum ReturnCode send_raw_response(int client_socket, struct Response* response) {
+    if (response == NULL) {
+        LOG_ERROR("Response is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+
+    char* raw_response = response_to_string(response);
+    free(response->body);
+    free_headers(&response->headers);
+
+    if (raw_response == NULL) {
+        return RET_ERROR;
+    }
+    
+    if (send(client_socket, raw_response, strlen(raw_response), 0) == RET_ERROR) {
+        LOG_ERROR("Response was not sent");
+        free(raw_response);
+        return RET_RESPONSE_NOT_SENT;
+    }
+
+    LOG_INFO("Response sent successfully");
+    free(raw_response);
+    return RET_SUCCESS;
+}
+
+static struct Response create_method_get_response(const struct Request* request) {
+    struct Response response = initialize_response();
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
+    if (check_file_exists(request->path) != RET_SUCCESS) {
+        LOG_WARN("GET: file not found");
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        response.body = strdup("Not Found");
+        response.body_size = strlen(response.body);
+        add_header(&response.headers, "Content-Type", "text/plain");
+        add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+        return response;
+    }
+
+    LOG_INFO("GET: file found");
+    strcpy(response.status, STATUS_200_OK);
+    add_header(&response.headers, "Content-Type", "application/octet-stream");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request->path));
+    return response;
+}
+
+static struct Response create_method_post_response() {
+    struct Response response = initialize_response();
+
+    strcpy(response.status, STATUS_201_CREATED);
+    response.body = strdup("File created.\n");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_INFO("POST: file created response");
+    return response;
+}
+
+static struct Response create_method_delete_response(const struct Request* request) {
+    struct Response response = initialize_response();
+
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return response;
+    }
+
+    if (delete_file(request->path) == RET_SUCCESS) {
+        strcpy(response.status, STATUS_200_OK);
+        response.body = strdup("File deleted.\n");
+    } else {
+        strcpy(response.status, STATUS_404_NOT_FOUND);
+        response.body = strdup("Not Found");
+    }
+
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_INFO("DELETE method response created");
+    return response;
+}
+
+static struct Response create_method_other_response() {
+    struct Response response = initialize_response();
+
+    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
+    response.body = strdup("Method not allowed");
+    response.body_size = strlen(response.body);
+    add_header(&response.headers, "Content-Type", "text/plain");
+    add_header_formatted(&response.headers, "Content-Length", "%zu", response.body_size);
+
+    LOG_WARN("Other/unsupported method handled");
+    return response;
+}
+
+static struct Response create_response(const struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return initialize_response();
+    }
+
+    struct Response response;
+
+    switch (request->method) {
+        case GET: response = create_method_get_response(request); break;
+        case POST: response = create_method_post_response(); break;
+        case DELETE: response = create_method_delete_response(request); break;
+        case UNKNOWN: 
+        default: response = create_method_other_response();
+    }
+
+    if (is_keep_alive(request->headers)) {
+        add_header(&response.headers, "Connection", "keep-alive");
+        add_header(&response.headers, "Keep-Alive", "timeout=5, max=100");
+    } else {
+        add_header(&response.headers, "Connection", "close");
+    }
+
+    LOG_INFO("Response created");
+    return response;
+}
+
+enum ReturnCode handle_request(int client_socket, struct Request* request) {
+    if (request == NULL) {
+        LOG_ERROR("Request is NULL");
+        return RET_ARGUMENT_IS_NULL;
+    }
+    LOG_INFO("Sending response");
+    struct Response response = create_response(request);
+    return send_raw_response(client_socket, &response);
 }
 
 int is_keep_alive(const struct HeaderList headers) {

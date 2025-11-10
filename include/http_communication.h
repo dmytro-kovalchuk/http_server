@@ -36,62 +36,6 @@ enum ReturnCode handle_request(int client_socket, struct Request* request);
 struct Request parse_request(const char* raw_request);
 
 /**
-    * Creates an HTTP response string from a given Request.
-    *
-    * @param[in] request The pointer to parsed Request structure.
-    *
-    * @return Returns a dynamically allocated string representing
-    * the HTTP response message.
-    *
-    * @note The caller is responsible for freeing the returned string.
-*/
-struct Response create_response(const struct Request* request);
-
-/**
-    * Handles an HTTP GET request.
-    *
-    * @param[in] request The pointer to parsed Request structure.
-    *
-    * @return Returns a Response structure containing the server's reply.
-*/
-struct Response create_method_get_response(const struct Request* request);
-
-/**
-    * Handles an HTTP POST request.
-    *
-    * @return Returns a Response structure containing the server's reply.
-*/
-struct Response create_method_post_response();
-
-/**
-    * Handles an HTTP DELETE request.
-    *
-    * @param[in] request The pointer to parsed Request structure.
-    *
-    * @return Returns a Response structure containing the server's reply.
-*/
-struct Response create_method_delete_response(const struct Request* request);
-
-/**
-    * Handles unsupported or unknown HTTP methods.
-    *
-    * @return Returns a Response structure with an appropriate error status.
-*/
-struct Response create_method_other_response();
-
-/**
-    * Converts a Response structure into a complete HTTP response string.
-    *
-    * @param[in] response The pointer to Response structure to convert.
-    *
-    * @return Returns a dynamically allocated string containing
-    * the formatted HTTP response.
-    *
-    * @note The caller is responsible for freeing the returned string.
-*/
-char* response_to_string(const struct Response* response);
-
-/**
     * Determines whether the HTTP connection should remain open.
     *
     * @param[in] headers The HTTP headers list.

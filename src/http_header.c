@@ -43,10 +43,6 @@ const char* get_header_value(const struct HeaderList* list, const char* key) {
     return NULL;
 }
 
-int has_header(const struct HeaderList* list, const char* key) {
-    return get_header_value(list, key) != NULL;
-}
-
 void free_headers(struct HeaderList* list) {
     for (size_t i = 0; i < list->size; ++i) {
         free(list->items[i].key);

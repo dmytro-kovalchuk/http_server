@@ -45,16 +45,6 @@ void add_header_formatted(struct HeaderList* list, const char* key, const char* 
 const char* get_header_value(const struct HeaderList* list, const char* key);
 
 /**
-    * Checks if a header exists in the HeaderList.
-    *
-    * @param[in] list Pointer to the HeaderList to search.
-    * @param[in] key The name of the header to check.
-    *
-    * @return Returns 1 if the header exists, or 0 if it does not.
-*/
-int has_header(const struct HeaderList* list, const char* key);
-
-/**
     * Frees all memory associated with a HeaderList.
     *
     * @param[in,out] list Pointer to the HeaderList to be freed.
