@@ -184,7 +184,7 @@ static struct Response create_method_get_response(const struct Request* request)
 
     if (check_file_exists(request->path) != RET_SUCCESS) {
         LOG_WARN("GET: file not found");
-        strcpy(response.status, STATUS_404_NOT_FOUND);
+        strncpy(response.status, STATUS_404_NOT_FOUND, sizeof(response.status));
         response.body = strdup("Not Found");
         response.body_size = strlen(response.body);
         add_header(&response.headers, "Content-Type", "text/plain");
@@ -193,7 +193,7 @@ static struct Response create_method_get_response(const struct Request* request)
     }
 
     LOG_INFO("GET: file found");
-    strcpy(response.status, STATUS_200_OK);
+    strncpy(response.status, STATUS_200_OK, sizeof(response.status));
     add_header(&response.headers, "Content-Type", "application/octet-stream");
     add_header_formatted(&response.headers, "Content-Length", "%zu", get_file_size(request->path));
     return response;
@@ -203,7 +203,7 @@ static struct Response create_method_post_response() {
     struct Response response;
     initialize_response(&response);
 
-    strcpy(response.status, STATUS_201_CREATED);
+    strncpy(response.status, STATUS_201_CREATED, sizeof(response.status));
     response.body = strdup("File created.\n");
     response.body_size = strlen(response.body);
     add_header(&response.headers, "Content-Type", "text/plain");
@@ -223,10 +223,10 @@ static struct Response create_method_delete_response(const struct Request* reque
     }
 
     if (delete_file(request->path) == RET_SUCCESS) {
-        strcpy(response.status, STATUS_200_OK);
+        strncpy(response.status, STATUS_200_OK, sizeof(response.status));
         response.body = strdup("File deleted.\n");
     } else {
-        strcpy(response.status, STATUS_404_NOT_FOUND);
+        strncpy(response.status, STATUS_404_NOT_FOUND, sizeof(response.status));
         response.body = strdup("Not Found");
     }
 
@@ -242,7 +242,7 @@ static struct Response create_method_other_response() {
     struct Response response;
     initialize_response(&response);
 
-    strcpy(response.status, STATUS_405_METHOD_NOT_ALLOWED);
+    strncpy(response.status, STATUS_405_METHOD_NOT_ALLOWED, sizeof(response.status));
     response.body = strdup("Method not allowed");
     response.body_size = strlen(response.body);
     add_header(&response.headers, "Content-Type", "text/plain");
