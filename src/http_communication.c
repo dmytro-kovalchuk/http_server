@@ -138,7 +138,7 @@ char* create_response(const struct Request* request) {
         add_header(&response.headers, "Connection", "close");
     }
 
-    return convert_struct_to_string(&response);
+    return response_to_string(&response);
 }
 
 struct Response handle_method_get(const struct Request* request) {
@@ -206,7 +206,7 @@ struct Response handle_method_other() {
     return response;
 }
 
-char* convert_struct_to_string(struct Response* response) {
+char* response_to_string(struct Response* response) {
     size_t total_estimated = HTTP_VERSION_SIZE + response->body_size + RESPONSE_EXTRA_BYTES;
     for (size_t i = 0; i < response->headers.size; ++i) {
         total_estimated += strlen(response->headers.items[i].key) + strlen(response->headers.items[i].value) + 4;

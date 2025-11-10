@@ -79,7 +79,7 @@ struct Response handle_method_other();
     *
     * @note The caller is responsible for freeing the returned string.
 */
-char* convert_struct_to_string(struct Response* response);
+char* response_to_string(struct Response* response);
 
 /**
     * Determines whether the HTTP connection should remain open.
