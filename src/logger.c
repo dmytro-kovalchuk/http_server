@@ -50,15 +50,21 @@ void log_message(enum Level level, const char* message) {
     }
 
     pthread_mutex_lock(&log_mutex);
-    fprintf(log_file, "[%s] [%s] %s\n", curr_time_str, level_str, message);
-    fflush(log_file);
+    if (log_file != NULL) {
+        fprintf(log_file, "[%s] [%s] %s\n", curr_time_str, level_str, message);
+        fflush(log_file);
+    } else {
+        fprintf(stderr, "[%s] [%s] %s\n", curr_time_str, level_str, message);
+    }
     pthread_mutex_unlock(&log_mutex);
 }
 
 void deinitialize_logger() {
     pthread_mutex_lock(&log_mutex);
-    fclose(log_file);
-    log_file = NULL;
+    if (log_file != NULL) {
+        fclose(log_file);
+        log_file = NULL;
+    }
     pthread_mutex_unlock(&log_mutex);
     pthread_mutex_destroy(&log_mutex);
 }
